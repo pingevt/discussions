@@ -1,0 +1,8 @@
+name = LUS OG Fix
+description = Fixes and enhancements for Organic groups.
+package = LUS
+core = 7.x
+
+dependencies[] = og
+
+version = "7.x-0.1"
