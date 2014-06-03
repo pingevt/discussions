@@ -1,0 +1,18 @@
+name = Discussions
+description = A simple one-column, tableless, fluid width theme built for the discussions website. This was based off the seven theme by drupal.
+package = Core
+version = VERSION
+core = 7.x
+stylesheets[screen][] = css/reset.css
+stylesheets[screen][] = css/style.css
+settings[shortcut_module_link] = 1
+regions[content] = Content
+regions[help] = Help
+regions[page_top] = Page top
+regions[page_bottom] = Page bottom
+regions[sidebar_first] = First sidebar
+regions_hidden[] = sidebar_first
+
+
+version = "0.01"
+
