@@ -11,7 +11,7 @@ regions[help] = Help
 regions[page_top] = Page top
 regions[page_bottom] = Page bottom
 regions[sidebar_first] = First sidebar
-regions_hidden[] = sidebar_first
+#regions_hidden[] = sidebar_first
 
 
 version = "0.01"
