@@ -1,6 +1,6 @@
 name = LUS OG Fix
-description = Fixes and enhancements for Organic groups.
-package = LUS
+description = Fixes and enhancements for Organic groups. Developed by Little Urchin Workshop.
+package = LUW
 core = 7.x
 
 dependencies[] = og

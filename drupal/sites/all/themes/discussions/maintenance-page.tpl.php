@@ -17,15 +17,6 @@
 
   <div id="page">
 
-    <?php if ($sidebar_first): ?>
-      <div id="sidebar-first" class="sidebar">
-        <?php if ($logo): ?>
-          <img id="logo" src="<?php print $logo ?>" alt="<?php print $site_name ?>" />
-        <?php endif; ?>
-        <?php print $sidebar_first ?>
-      </div>
-    <?php endif; ?>
-
     <div id="content" class="clearfix">
       <?php if ($messages): ?>
         <div id="console"><?php print $messages; ?></div>

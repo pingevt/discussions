@@ -1,0 +1,136 @@
+<?php
+
+/**
+ * Implements hook_menu().
+ */
+function luw_discussions_menu() {
+  $items['login'] = array(
+    'title' => 'blogs',
+    'page callback' => 'luw_login_page_view',
+    'access arguments' => array('access content'),
+    'type' => MENU_SUGGESTED_ITEM,
+  );
+  $items['dashboard'] = array(
+    'title' => '',
+    'page callback' => 'luw_dashboard_page_view',
+    'access arguments' => array('access content'),
+    'type' => MENU_SUGGESTED_ITEM,
+  );
+  $items['group/%'] = array(
+    'title' => '',
+    'page callback' => 'luw_dashboard_group_view',
+    'page arguments' => array(1),
+    'access arguments' => array('access content'),
+    'type' => MENU_SUGGESTED_ITEM,
+  );
+  return $items;
+}
+
+function luw_login_page_view() {
+  $build = array();
+
+  return $build;
+}
+
+function luw_dashboard_page_view() {
+  drupal_set_title('Dashboard');
+
+  $build = array();
+  $build['#theme'] = 'dashboard_content';
+
+  // Set up user block.
+  $build['user'] = _build_user_block();
+
+
+  // Set up groups block.
+  $build['groups'] = array(
+    '#theme' => 'item_list',
+    '#items' => array(),
+    '#title' => t('Groups'),
+  );
+  $groups = og_get_groups_by_user();
+
+  foreach ($groups as $entity_type => $entity_groups) {
+    foreach ($entity_groups as $entity_id) {
+      $entity = entity_load_single($entity_type, $entity_id);
+
+      $entity_uri = entity_uri($entity_type, $entity);
+      $build['groups']['#items'][] = array(
+        'data' => l($entity->title, 'group/' . $entity->nid),
+      );
+    }
+  }
+
+  // Setup add content block
+  $build['add_content'] = array(
+    '#theme' => 'item_list',
+    '#items' => array(
+      array(
+        'data' => l('Add Discussion', 'node/add/discussion'),
+      ),
+      array(
+        'data' => l('Add Event', 'node/add/event'),
+      ),
+      array(
+        'data' => l('Add Gallery', 'node/add/gallery'),
+      ),
+      array(
+        'data' => l('Add Image', 'file/add'),
+      ),
+    ),
+    '#title' => t('Add content'),
+  );
+
+
+  // Add main content
+  $build['content'] = array(
+    '#theme' => 'item_list',
+    '#items' => array(),
+    '#title' => t('Latest Content'),
+  );
+
+  return $build;
+}
+
+/**
+ * Implements hook_theme().
+ */
+function luw_discussions_theme($existing, $type, $theme, $path) {
+  return array(
+    'dashboard_content' => array(
+      'template' => 'templates/dashboard-content',
+      'render element' => 'element',
+    ),
+  );
+}
+
+
+
+function _get_users_latest_content($user = NULL) {
+  if ($user == NULL) {
+    global $user;
+  }
+
+  $groups = og_get_groups_by_user($user);
+
+  $query = new EntityFieldQuery();
+  $result = $query
+  ->entityCondition('entity_type', 'og_membership')
+  ->propertyCondition('gid', $gid, '=')
+  ->propertyCondition('group_type', $group_type, '=')
+  ->propertyCondition('etid', $etid, '=')
+  ->propertyCondition('entity_type', $entity_type, '=')
+  ->execute();
+
+}
+
+
+function _build_user_block() {
+  global $user;
+  $user = user_load($user->uid);
+
+  $str = '<div class="user-img">' . theme('image_style', array('style_name' => 'user_img_normal', 'path' => $user->picture->uri)) . '</div>';
+  $str .= '<h3>' . $user->name . '</h3>';
+
+  return array('#markup' => $str);
+}
