@@ -1,6 +1,8 @@
-name = Discussion
+name = Discussion Master
 description = Backbone for Discussion site. Developed by Little Urchin Workshop.
 package = LUW
 core = 7.x
+
+dependencies[] = discussion_group
 
 version = "7.x-0.1"

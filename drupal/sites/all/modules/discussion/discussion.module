@@ -48,7 +48,6 @@ function luw_dashboard_page_view() {
     '#items' => array(),
     '#title' => t('Groups'),
   );
-  $groups = og_get_groups_by_user();
 
   foreach ($groups as $entity_type => $entity_groups) {
     foreach ($entity_groups as $entity_id) {
@@ -110,17 +109,6 @@ function _get_users_latest_content($user = NULL) {
   if ($user == NULL) {
     global $user;
   }
-
-  $groups = og_get_groups_by_user($user);
-
-  $query = new EntityFieldQuery();
-  $result = $query
-  ->entityCondition('entity_type', 'og_membership')
-  ->propertyCondition('gid', $gid, '=')
-  ->propertyCondition('group_type', $group_type, '=')
-  ->propertyCondition('etid', $etid, '=')
-  ->propertyCondition('entity_type', $entity_type, '=')
-  ->execute();
 
 }
 

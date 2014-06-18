@@ -1,0 +1,130 @@
+<?php
+
+/**
+ * Implements hook_entity_info().
+ */
+function discussion_group_entity_info() {
+  $items = array();
+
+  $items['group'] = array(
+    'label' => t('Group'),
+    'controller class' => 'GroupController',
+    'entity class' => 'Group',
+    'load hook' => 'luw_group_load',
+    'uri callback' => 'luw_group_uri',
+    //'label callback' => 'luw_group_label',
+    'fieldable' => TRUE,
+    'revisionable' => TRUE,
+    'access callback' => 'group_entity_access',
+    'entity keys' => array(
+      'id' => '_id',
+      'revision' => '_revision_id',
+      'label' => 'group_name',
+    ),
+    'bundles' => array(
+      'group' => array(
+        'label' => t('Group'),
+        'admin' => array(
+          'path' => 'admin/structure/group/manage',
+          'access arguments' => array('administer groups'),
+        ),
+      ),
+    ),
+    'view modes' => array(
+
+    ),
+    'admin ui' => array(
+      'controller class' => 'GroupUIController',
+      'path' => 'admin/group',
+      'file' => 'includes/group.inc',
+    ),
+    'module' => 'discussion_group',
+  );
+
+  $items['group_membership'] = array(
+    'label' => t('Group Membership'),
+    'controller class' => 'GroupMembershipController',
+    'entity class' => 'GroupMembership',
+    'load hook' => 'luw_group_membership_load',
+    'uri callback' => 'luw_group_membership_uri',
+    'label callback' => 'luw_group_membership_label',
+    'fieldable' => TRUE,
+    'revisionable' => TRUE,
+    'access callback' => 'group_membership_entity_access',
+    'entity keys' => array(
+      'id' => '_id',
+      'revision' => '_revision_id',
+      'bundle' => '_bundle',
+    ),
+    'bundles' => array(
+      'membership' => array(
+        'label' => t('Membership'),
+        'admin' => array(
+          'path' => 'admin/group-membership/membership/manage',
+          'bundle argument' => 2,
+          'real path' => 'admin/group-membership/membership/manage',
+          'access arguments' => array('administer groups'),
+        ),
+      ),
+    ),
+    'view modes' => array(
+
+    ),
+    'admin ui' => array(
+      'controller class' => 'GroupMembershipUIController',
+      'path' => 'admin/group-membership',
+      'file' => 'includes/group_membership.inc',
+    ),
+    'module' => 'discussion_group',
+  );
+
+  return $items;
+}
+
+/**
+ * Implements hook_permission().
+ */
+function discussion_group_permission() {
+  return array(
+    'administer groups' => array(
+      'title' => t('Administer Groups'),
+      'description' => t('Perform administration tasks for groups.'),
+    ),
+  );
+}
+
+function luw_group_load() {
+
+}
+
+function luw_group_uri() {
+
+}
+
+function luw_group_label() {
+
+}
+
+function group_entity_access() {
+  return TRUE;
+}
+
+function luw_group_membership_load() {
+
+}
+
+function luw_group_membership_uri() {
+
+}
+
+function luw_group_membership_label() {
+
+}
+
+function group_membership_entity_access() {
+  return TRUE;
+}
+
+
+
+
