@@ -1,0 +1,6 @@
+name = Discussion
+description = Backbone for Discussion site. Developed by Little Urchin Workshop.
+package = LUW
+core = 7.x
+
+version = "7.x-0.1"
