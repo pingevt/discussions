@@ -10,13 +10,24 @@ function discussion_menu() {
     'access arguments' => array('access content'),
     'type' => MENU_SUGGESTED_ITEM,
   );
+
   $items['dashboard'] = array(
     'title' => '',
     'page callback' => 'luw_dashboard_page_view',
     'access arguments' => array('access content'),
     'type' => MENU_SUGGESTED_ITEM,
   );
-  $items['group/%'] = array(
+
+  $items['group/%luw_group'] = array(
+    'title' => '',
+    'page callback' => 'luw_group_dashboard_page_view',
+    'page arguments' => array(1),
+    'access callback' => 'group_entity_access',
+    'access arguments' => array( 1, 'access groups'),
+    'type' => MENU_SUGGESTED_ITEM,
+  );
+
+  $items['group/%luw_group/memberships'] = array(
     'title' => '',
     'page callback' => 'luw_dashboard_group_view',
     'page arguments' => array(1),
@@ -49,15 +60,11 @@ function luw_dashboard_page_view() {
     '#title' => t('Groups'),
   );
 
-  foreach ($groups as $entity_type => $entity_groups) {
-    foreach ($entity_groups as $entity_id) {
-      $entity = entity_load_single($entity_type, $entity_id);
-
-      $entity_uri = entity_uri($entity_type, $entity);
-      $build['groups']['#items'][] = array(
-        'data' => l($entity->title, 'group/' . $entity->nid),
-      );
-    }
+  $groups = Group::getCurrentUserGroups();
+  foreach ($groups as $gid => $group) {
+    $build['groups']['#items'][] = array(
+      'data' => l($group->label(), 'group/' . $group->_id),
+    );
   }
 
   // Setup add content block
@@ -74,12 +81,11 @@ function luw_dashboard_page_view() {
         'data' => l('Add Gallery', 'node/add/gallery'),
       ),
       array(
-        'data' => l('Add Image', 'file/add'),
+        'data' => l('Add Image', 'node/add/image'),
       ),
     ),
     '#title' => t('Add content'),
   );
-
 
   // Add main content
   $build['content'] = array(
@@ -87,6 +93,17 @@ function luw_dashboard_page_view() {
     '#items' => array(),
     '#title' => t('Latest Content'),
   );
+
+  return $build;
+}
+
+function luw_group_dashboard_page_view($group) {
+  drupal_set_title($group->label());
+  $build = array();
+  $build['#theme'] = 'group_content';
+
+  // Set up user block.
+  $build['user'] = _build_user_block();
 
   return $build;
 }
@@ -100,6 +117,11 @@ function discussion_theme($existing, $type, $theme, $path) {
       'template' => 'templates/dashboard-content',
       'render element' => 'element',
     ),
+    'group_content' => array(
+      'template' => 'templates/group-content',
+      'render element' => 'element',
+    ),
+
   );
 }
 

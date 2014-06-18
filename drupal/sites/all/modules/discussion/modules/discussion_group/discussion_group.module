@@ -20,6 +20,7 @@ function discussion_group_entity_info() {
       'id' => '_id',
       'revision' => '_revision_id',
       'label' => 'group_name',
+      'bundle' => '_bundle',
     ),
     'bundles' => array(
       'group' => array(
@@ -49,7 +50,6 @@ function discussion_group_entity_info() {
     'uri callback' => 'luw_group_membership_uri',
     'label callback' => 'luw_group_membership_label',
     'fieldable' => TRUE,
-    'revisionable' => TRUE,
     'access callback' => 'group_membership_entity_access',
     'entity keys' => array(
       'id' => '_id',
@@ -61,8 +61,6 @@ function discussion_group_entity_info() {
         'label' => t('Membership'),
         'admin' => array(
           'path' => 'admin/group-membership/membership/manage',
-          'bundle argument' => 2,
-          'real path' => 'admin/group-membership/membership/manage',
           'access arguments' => array('administer groups'),
         ),
       ),
@@ -70,15 +68,72 @@ function discussion_group_entity_info() {
     'view modes' => array(
 
     ),
-    'admin ui' => array(
-      'controller class' => 'GroupMembershipUIController',
-      'path' => 'admin/group-membership',
-      'file' => 'includes/group_membership.inc',
-    ),
     'module' => 'discussion_group',
   );
 
   return $items;
+}
+
+function discussion_group_entity_property_info() {
+  $date_properties = array(
+    'created' => array(
+      'label' => 'Created',
+      'type' => 'date',
+    ),
+    'updated' => array(
+      'label' => 'Updated',
+      'type' => 'date',
+    ),
+  );
+
+  $info = array();
+
+  $info['group']['properties'] = array(
+    'group_name' => array(
+      'label' => t("Group Name"),
+      'type' => 'text',
+      'description' => t("The group name."),
+    ),
+  );
+  $info['group']['properties'] += $date_properties;
+
+  $info['group_membership']['properties'] = array(
+    'gid' => array(
+      'label' => t("Group ID"),
+      'type' => 'integer',
+      'description' => t("The unique group ID."),
+    ),
+    'uid' => array(
+      'label' => t("User ID"),
+      'type' => 'integer',
+      'description' => t("The unique user ID."),
+    ),
+    'grid' => array(
+      'label' => t("Group role ID"),
+      'type' => 'integer',
+      'description' => t("The unique group role ID."),
+    ),
+  );
+  $info['group_membership']['properties'] += $date_properties;
+
+  return $info;
+}
+
+/**
+ * Implements hook_entity_presave().
+ */
+function discussion_group_entity_presave($entity, $type) {
+  $info = entity_get_property_info($type);
+
+  if ($info['module'] == 'discussion_group') {
+    if (isset($info['properties']['created']) && isset($entity->is_new) && $entity->is_new && !isset($entity->created)) {
+      $entity->created = time();
+    }
+
+    if (isset($info['properties']['updated'])) {
+      $entity->updated = time();
+    }
+  }
 }
 
 /**
@@ -93,8 +148,8 @@ function discussion_group_permission() {
   );
 }
 
-function luw_group_load() {
-
+function luw_group_load($gid) {
+  return entity_load_single('group', $gid);
 }
 
 function luw_group_uri() {
@@ -105,7 +160,9 @@ function luw_group_label() {
 
 }
 
-function group_entity_access() {
+function group_entity_access($group_id) {
+  global $user;
+
   return TRUE;
 }
 
@@ -127,4 +184,37 @@ function group_membership_entity_access() {
 
 
 
+/**
+ * Implements hook_form_alter().
+ */
+function discussion_group_form_alter(&$form, &$form_state, $form_id) {
+  if (strpos($form_id, '_node_form') !== FALSE) {
+    $groups = Group::getCurrentUserGroups();
 
+    $group_options = array();
+    foreach ($groups as $group_id => $group) {
+      $group_options[$group_id] = $group->label();
+    }
+
+
+    $form['group_assignment'] = array(
+      '#type' => 'fieldset',
+      '#title' => t('Group Assignment'),
+      '#weight' => -20,
+    );
+
+    $form['group_assignment']['groups'] = array(
+      '#type' => 'select',
+      '#title' => t('Publish to'),
+      '#options' => $group_options,
+      '#multiple' => TRUE,
+      '#required' => TRUE,
+    );
+
+    $form['#submit'][] = 'luw_node_form_submit';
+  }
+}
+
+function luw_node_form_submit(&$form, &$form_state) {
+
+}
