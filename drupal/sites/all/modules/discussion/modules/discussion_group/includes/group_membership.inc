@@ -1,6 +1,13 @@
 <?php
 
 class GroupMembership extends MongoEntity {
+
+  public $gid;
+  public $uid;
+  public $grid;
+  public $updated;
+  public $created;
+
   /**
    * {@inheritdoc}
    */

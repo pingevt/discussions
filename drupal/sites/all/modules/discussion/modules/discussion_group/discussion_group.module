@@ -71,6 +71,35 @@ function discussion_group_entity_info() {
     'module' => 'discussion_group',
   );
 
+  $items['group_content'] = array(
+    'label' => t('Group Content'),
+    'controller class' => 'GroupContentController',
+    'entity class' => 'Groupcontent',
+    'load hook' => 'luw_group_content_load',
+    'uri callback' => 'luw_group_content_uri',
+    'label callback' => 'luw_group_content_label',
+    'fieldable' => TRUE,
+    'access callback' => 'group_content_entity_access',
+    'entity keys' => array(
+      'id' => '_id',
+      'revision' => '_revision_id',
+      'bundle' => '_bundle',
+    ),
+    'bundles' => array(
+      'content' => array(
+        'label' => t('Content'),
+        'admin' => array(
+          'path' => 'admin/group-content/content/manage',
+          'access arguments' => array('administer groups'),
+        ),
+      ),
+    ),
+    'view modes' => array(
+
+    ),
+    'module' => 'discussion_group',
+  );
+
   return $items;
 }
 
@@ -116,6 +145,26 @@ function discussion_group_entity_property_info() {
   );
   $info['group_membership']['properties'] += $date_properties;
 
+  $info['group_content']['properties'] = array(
+    'gid' => array(
+      'label' => t("Group ID"),
+      'type' => 'integer',
+      'description' => t("The unique group role ID."),
+    ),
+    'eid' => array(
+      'label' => t("Entity ID"),
+      'type' => 'integer',
+      'description' => t("The unique ID."),
+    ),
+    'entity_type' => array(
+      'label' => t("Entity Type"),
+      'type' => 'text',
+      'description' => t("The entity_type of the entity that is part of the group."),
+    ),
+  );
+  $info['group_content']['properties'] += $date_properties;
+
+dpm($info);
   return $info;
 }
 
@@ -123,9 +172,10 @@ function discussion_group_entity_property_info() {
  * Implements hook_entity_presave().
  */
 function discussion_group_entity_presave($entity, $type) {
+  $entity_info = entity_get_info($type);
   $info = entity_get_property_info($type);
 
-  if ($info['module'] == 'discussion_group') {
+  if ($entity_info['module'] == 'discussion_group') {
     if (isset($info['properties']['created']) && isset($entity->is_new) && $entity->is_new && !isset($entity->created)) {
       $entity->created = time();
     }
@@ -196,11 +246,30 @@ function discussion_group_form_alter(&$form, &$form_state, $form_id) {
       $group_options[$group_id] = $group->label();
     }
 
+    // Check for existing groups.
+    $group_options_default = array();
+    if (isset($form['#node']->nid)) {
+      $query = new EntityFieldQuery();
+      $query->entityCondition('entity_type', 'group_content');
+      $query->propertyCondition('entity_type', 'node');
+      $query->propertyCondition('eid', $form['#node']->nid);
+
+      $results = $query->execute();
+
+      if (isset($results['group_content'])) {
+        $group_contents = entity_load('group_content', array_keys($results['group_content']));
+
+        foreach ($group_contents as $group) {
+          $group_options_default[] = $group->gid;
+        }
+      }
+    }
 
     $form['group_assignment'] = array(
       '#type' => 'fieldset',
       '#title' => t('Group Assignment'),
       '#weight' => -20,
+      '#tree' => TRUE,
     );
 
     $form['group_assignment']['groups'] = array(
@@ -209,12 +278,45 @@ function discussion_group_form_alter(&$form, &$form_state, $form_id) {
       '#options' => $group_options,
       '#multiple' => TRUE,
       '#required' => TRUE,
+      '#default_value' => $group_options_default,
     );
 
-    $form['#submit'][] = 'luw_node_form_submit';
+    $form['actions']['submit']['#submit'][] = 'luw_node_form_submit';
+
   }
 }
 
 function luw_node_form_submit(&$form, &$form_state) {
 
+  $group_ids = $form_state['values']['group_assignment']['groups'];
+
+  // Check for existing, update or add new.
+  $query = new EntityFieldQuery();
+  $query->entityCondition('entity_type', 'group_content');
+  $query->propertyCondition('entity_type', 'node');
+  $query->propertyCondition('eid', $form_state['values']['nid']);
+
+  $results = $query->execute();
+  if (isset($results['group_content'])) {
+    $group_contents = entity_load('group_content', array_keys($results['group_content']));
+
+    foreach ($group_contents as $group) {
+      if (in_array($group->gid, $group_ids)) {
+        unset($group_ids[array_search($group->gid, $group_ids)]);
+      }
+      else {
+        $group->delete();
+      }
+    }
+  }
+
+  foreach ($group_ids as $group_id) {
+    $gc = entity_create('group_content', array());
+
+    $gc->eid = $form_state['values']['nid'];
+    $gc->gid = $group_id;
+    $gc->entity_type = 'node';
+
+    $gc->save();
+  }
 }
