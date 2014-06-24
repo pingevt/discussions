@@ -103,6 +103,9 @@ function discussion_group_entity_info() {
   return $items;
 }
 
+/**
+ * Implements hook_entity_property_info().
+ */
 function discussion_group_entity_property_info() {
   $date_properties = array(
     'created' => array(
@@ -164,8 +167,24 @@ function discussion_group_entity_property_info() {
   );
   $info['group_content']['properties'] += $date_properties;
 
-dpm($info);
   return $info;
+}
+
+/**
+ * Implements hook_entity_info_alter().
+ */
+function discussion_group_entity_info_alter(&$entity_info) {
+
+  $entity_info['node']['view modes']['latest_feed'] = array(
+    'label' => 'Latest Feed',
+    'custom settings' => FALSE,
+  );
+
+  $entity_info['comment']['view modes']['latest_feed'] = array(
+    'label' => 'Latest Feed',
+    'custom settings' => FALSE,
+  );
+
 }
 
 /**
@@ -175,7 +194,7 @@ function discussion_group_entity_presave($entity, $type) {
   $entity_info = entity_get_info($type);
   $info = entity_get_property_info($type);
 
-  if ($entity_info['module'] == 'discussion_group') {
+  if (isset($entity_info['module']) && $entity_info['module'] == 'discussion_group') {
     if (isset($info['properties']['created']) && isset($entity->is_new) && $entity->is_new && !isset($entity->created)) {
       $entity->created = time();
     }
@@ -238,7 +257,8 @@ function group_membership_entity_access() {
  * Implements hook_form_alter().
  */
 function discussion_group_form_alter(&$form, &$form_state, $form_id) {
-  if (strpos($form_id, '_node_form') !== FALSE) {
+
+  if (strpos($form_id, '_node_form') !== FALSE && in_array($form['#bundle'], array('gallery', 'image', 'event', 'discussion') )) {
     $groups = Group::getCurrentUserGroups();
 
     $group_options = array();
