@@ -34,6 +34,25 @@ function discussion_menu() {
     'access arguments' => array('access content'),
     'type' => MENU_SUGGESTED_ITEM,
   );
+
+
+  // Callbackcs for calendars
+  $items['api/current-events'] = array(
+    'page callback' => 'current_events_callback',
+    'page arguments' => array(),
+    'delivery callback' => 'drupal_json_output',
+    'access callback' => TRUE,
+    'type' => MENU_CALLBACK,
+  );
+
+  $items['api/group-events/%group'] = array(
+    'page callback' => 'group_events_callback',
+    'page arguments' => array(2),
+    'delivery callback' => 'drupal_json_output',
+    'access callback' => TRUE,
+    'type' => MENU_CALLBACK,
+  );
+
   return $items;
 }
 
@@ -88,6 +107,15 @@ function luw_dashboard_page_view() {
     '#title' => t('Add content'),
   );
   */
+
+
+  // Setup mini calendar
+  $build['mini_calendar'] = array(
+    '#theme' => 'mini_calendar',
+    '#attributes' => array(
+      'data-href' => '/api/current-events',
+    ),
+  );
 
   // Add main content
   $build['content'] = array(
@@ -168,6 +196,7 @@ function luw_dashboard_page_view() {
 
     $build['content']['#items'][] = render($content);
   }
+
   return $build;
 }
 
@@ -202,19 +231,17 @@ function discussion_theme($existing, $type, $theme, $path) {
       'template' => 'templates/group-content',
       'render element' => 'element',
     ),
+    'mini_calendar' => array(
+      'template' => 'templates/mini-calendar',
+      'render element' => 'element',
+    ),
 
   );
 }
 
-
-
-function _get_users_latest_content($user = NULL) {
-  if ($user == NULL) {
-    global $user;
-  }
-
+function template_preprocess_mini_calendar() {
+  drupal_add_js(drupal_get_path('module', 'discussion') . '/js/mini-calendar.js');
 }
-
 
 function _build_user_block() {
   global $user;
@@ -224,4 +251,67 @@ function _build_user_block() {
   $str .= '<h3>' . $user->name . '</h3>';
 
   return array('#markup' => $str);
+}
+
+function current_events_callback() {
+  global $user;
+
+  $query_args = drupal_get_query_parameters();
+
+  $date = isset($_GET['date'])? strtotime($_GET['date']) : mktime(0, 0, 0, date('m'), date('d'), date('Y'));
+
+  $start = date('Y-m-', $date) . '01';
+  $end = date('Y-m-', $date) . date('t', $date);
+
+  // Initialize return output array
+  $output = array();
+
+  // Get groups of the currently logged in user
+  $groups = Group::getCurrentUserGroups();
+
+  // Query Events within the group and within the time frame.
+  $q = db_select('node', 'n');
+  $q->fields('n', array('nid'));
+  $q->join('discussion_group_content', 'dgc', 'n.nid = dgc.eid');
+  $q->join('field_data_field_dates', 'f', 'n.nid = f.entity_id');
+  $q->condition('f.entity_type', 'node');
+  $q->condition('n.type', 'event');
+
+  // create an OR
+  $o1 = db_or();
+  // start date is within the month
+  $o1->condition('f.field_dates_value', array($start, $end), 'BETWEEN');
+  // end date is within the month
+  $o1->condition('f.field_dates_value2', array($start, $end), 'BETWEEN');
+
+  // Create a new AND
+  $span = db_and();
+  // Start date is before the month and end date is after the end of the month
+  $span->condition('f.field_dates_value', $start, '<');
+  $span->condition('f.field_dates_value2', $end, '>');
+
+  // add and to or
+  $o1->condition($span);
+
+  // add or to full query
+  $q->condition($o1);
+
+  // We want distinct nodes
+  $q->distinct();
+
+  $result = $q->execute();
+
+  while($record = $result->fetchAssoc()) {
+    $node = node_load($record['nid']);
+
+    $output[] = array(
+      'start' => $node->field_dates[LANGUAGE_NONE][0]['value'],
+      'end' => $node->field_dates[LANGUAGE_NONE][0]['value2'],
+      'title' => $node->title,
+      'location' => isset($node->field_event_location[LANGUAGE_NONE][0]['value'])? $node->field_event_location[LANGUAGE_NONE][0]['value'] : '',
+      'url' => '',
+    );
+  }
+
+  return $output;
 }

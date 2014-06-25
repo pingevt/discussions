@@ -81,9 +81,8 @@ function discussion_group_entity_info() {
     'fieldable' => TRUE,
     'access callback' => 'group_content_entity_access',
     'entity keys' => array(
-      'id' => '_id',
-      'revision' => '_revision_id',
-      'bundle' => '_bundle',
+      'id' => 'gcid',
+      'bundle' => 'type',
     ),
     'bundles' => array(
       'content' => array(
@@ -98,6 +97,7 @@ function discussion_group_entity_info() {
 
     ),
     'module' => 'discussion_group',
+    'base table' => 'discussion_group_content',
   );
 
   return $items;
@@ -163,6 +163,11 @@ function discussion_group_entity_property_info() {
       'label' => t("Entity Type"),
       'type' => 'text',
       'description' => t("The entity_type of the entity that is part of the group."),
+    ),
+    'entity_bundle' => array(
+      'label' => t("Entity Bundle"),
+      'type' => 'text',
+      'description' => t("The entity_bundle of the entity that is part of the group."),
     ),
   );
   $info['group_content']['properties'] += $date_properties;
@@ -323,6 +328,10 @@ function luw_node_form_submit(&$form, &$form_state) {
     foreach ($group_contents as $group) {
       if (in_array($group->gid, $group_ids)) {
         unset($group_ids[array_search($group->gid, $group_ids)]);
+
+
+        $group->entity_bundle = $form_state['complete form']['#node']->type;
+        $group->save();
       }
       else {
         $group->delete();
@@ -336,6 +345,7 @@ function luw_node_form_submit(&$form, &$form_state) {
     $gc->eid = $form_state['values']['nid'];
     $gc->gid = $group_id;
     $gc->entity_type = 'node';
+    $gc->entity_bundle = $form_state['complete form']['#node']->type;
 
     $gc->save();
   }

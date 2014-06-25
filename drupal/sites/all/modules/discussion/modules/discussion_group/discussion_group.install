@@ -1,0 +1,97 @@
+<?php
+
+function _discussion_group_content_table() {
+  return array(
+    'description' => 'The base table for group_content.',
+    'fields' => array(
+      'gcid' => array(
+        'description' => 'The primary identifier for the entity.',
+        'type' => 'serial',
+        'unsigned' => TRUE,
+        'not null' => TRUE
+      ),
+      'type' => array(
+        'description' => 'The {group_content_type} of this node.',
+        'type' => 'varchar',
+        'length' => 32,
+        'not null' => TRUE,
+        'default' => ''
+      ),
+      'gid' => array(
+        'description' => 'The primary identifier for the group.',
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE
+      ),
+      'eid' => array(
+        'description' => 'The primary identifier for the entity.',
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE
+      ),
+      'entity_type' => array(
+        'description' => 'The {entity_type} of this node.',
+        'type' => 'varchar',
+        'length' => 32,
+        'not null' => TRUE,
+        'default' => ''
+      ),
+      'entity_bundle' => array(
+        'description' => 'The {entity_type} of this node.',
+        'type' => 'varchar',
+        'length' => 32,
+        'not null' => TRUE,
+        'default' => ''
+      ),
+      'created' => array(
+        'description' => 'The Unix timestamp when the node was created.',
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'updated' => array(
+        'description' => 'The Unix timestamp when the node was most recently saved.',
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+    ),
+    'indexes' => array(
+      'node_changed' => array('updated'),
+      'node_created' => array('created'),
+    ),
+    'unique keys' => array(
+      'gid_eid' => array('gid', 'eid'),
+      'gcid' => array('gcid'),
+    ),
+    'primary key' => array('gcid'),
+  );
+}
+
+
+/**
+ * Implements hook_schema().
+ */
+function discussion_group_schema() {
+  $schema['discussion_group_content'] = _discussion_group_content_table();
+  return $schema;
+}
+
+/**
+ * Implements hook_update().
+ */
+function discussion_group_update($node) {
+  db_update('mytable')
+    ->fields(array('extra' => $node->extra))
+    ->condition('nid', $node->nid)
+    ->execute();
+}
+
+
+/**
+ * Adds table.
+ */
+function discussion_group_update_7001() {
+  db_create_table('discussion_group_content', _discussion_group_content_table());
+}
+

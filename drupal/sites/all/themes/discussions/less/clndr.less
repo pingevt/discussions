@@ -1,0 +1,40 @@
+@red: #ff5a45;
+@blue: #71bbd2;
+@dark-blue: #3883a3;
+@dark-green:  #69a776;
+@light-green: #97ce7f;
+@dark-gray: #414141;
+@light-gray: #cccccc;
+@lightest-gray: #ebebeb;
+@yellow: #ddca9a;
+
+
+.mini-calendar {
+  font-size: 11px;
+
+  .day {
+    &.past {
+      color: @light-gray;
+    }
+
+    &.event {
+      color: @red;
+    }
+
+    &.today {
+      background: @lightest-gray;
+    }
+
+    &.adjacent-month {
+      color: @lightest-gray;
+
+      &.last-month {
+
+      }
+
+      &.next-month {
+
+      }
+    }
+  }
+}
