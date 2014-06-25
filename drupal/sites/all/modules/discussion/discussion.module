@@ -29,7 +29,7 @@ function discussion_menu() {
 
   $items['group/%luw_group/memberships'] = array(
     'title' => '',
-    'page callback' => 'luw_dashboard_group_view',
+    'page callback' => 'luw_group_membership_page_view',
     'page arguments' => array(1),
     'access arguments' => array('access content'),
     'type' => MENU_SUGGESTED_ITEM,
@@ -154,21 +154,23 @@ function luw_dashboard_page_view() {
     $items[] = $node;
   }
 
-  $c_query = new EntityFieldQuery();
-  $c_query->entityCondition('entity_type', 'comment');
-  $c_query->propertyCondition('nid', $nodes, 'IN');
-  $c_query->propertyOrderBy('created', 'DESC');
+  if (!empty($nodes)) {
+    $c_query = new EntityFieldQuery();
+    $c_query->entityCondition('entity_type', 'comment');
+    $c_query->propertyCondition('nid', $nodes, 'IN');
+    $c_query->propertyOrderBy('created', 'DESC');
 
-  $c_result = $c_query->execute();
-  if (isset($c_result['comment'])) {
-    $comments = entity_load('comment', array_keys($c_result['comment']));
+    $c_result = $c_query->execute();
+    if (isset($c_result['comment'])) {
+      $comments = entity_load('comment', array_keys($c_result['comment']));
 
-    foreach ($comments as $comment) {
-      $comment->__content_type = 'comment';
-      // add to array
-      $items[] = $comment;
+      foreach ($comments as $comment) {
+        $comment->__content_type = 'comment';
+        // add to array
+        $items[] = $comment;
+      }
+
     }
-
   }
 
   usort($items, '_sort_entities_by_created');
@@ -218,6 +220,35 @@ function luw_group_dashboard_page_view($group) {
   return $build;
 }
 
+function luw_group_membership_page_view($group) {
+  $build = array();
+  drupal_set_title($group->label() . ' Group Memberships');
+
+  // Add user
+  $build['add_user'] = drupal_get_form('group_add_user_by_email_form', $group);
+
+  // List members
+  $members = $group->getGroupMembers();
+
+  $build['members_table'] = array(
+    '#theme' => 'table',
+    '#header' => array('Username', 'Email', 'Group Role', 'Operations'),
+    '#rows' => array(),
+    '#empty' => 'There are no users in this group',
+  );
+
+  foreach ($members as $member) {
+    $build['members_table']['#rows'][] = array(
+      $member->_user->name,
+      $member->_user->mail,
+      $group->getUsersRole($member),
+      '',
+    );
+  }
+
+  return $build;
+}
+
 /**
  * Implements hook_theme().
  */
@@ -247,7 +278,9 @@ function _build_user_block() {
   global $user;
   $user = user_load($user->uid);
 
-  $str = '<div class="user-img">' . theme('image_style', array('style_name' => 'user_img_normal', 'path' => $user->picture->uri)) . '</div>';
+  $str = theme('user_picture', array('account' => $user, 'style_name' => 'user_img_normal'));
+
+  //$str = '<div class="user-img">' . theme('image_style', array('style_name' => 'user_img_normal', 'path' => $user->picture->uri)) . '</div>';
   $str .= '<h3>' . $user->name . '</h3>';
 
   return array('#markup' => $str);

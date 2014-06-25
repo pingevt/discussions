@@ -1,6 +1,22 @@
 <?php
 
+/*
+define('GROUP_ROLE_OWNER_LABEL', 'Owner');
+define('GROUP_ROLE_EDITOR_LABEL', 'Editor');
+define('GROUP_ROLE_MEMBER_LABEL', 'Member');
+define('GROUP_ROLE_OWNER_ID', 10);
+define('GROUP_ROLE_EDITOR_ID', 5);
+define('GROUP_ROLE_MEMBER_ID', 0);
+*/
+
 class Group extends MongoEntity {
+
+  private $group_roles = array(
+    0 => 'Member',
+    5 => 'Editor',
+    10 => 'Owner',
+  );
+
   /**
    * {@inheritdoc}
    */
@@ -11,6 +27,9 @@ class Group extends MongoEntity {
     }
   }
 
+  /**
+   *  provides a statis function to get groups for a currently logged in user.
+   */
   public static function getCurrentUserGroups() {
     global $user;
 
@@ -31,6 +50,56 @@ class Group extends MongoEntity {
     }
 
     return $groups;
+  }
+
+  /**
+   *  provides members of a group.
+   */
+  public function getGroupMembers() {
+    $group_memberships = array();
+
+    $query = new EntityFieldQuery();
+    $query->entityCondition('entity_type', 'group_membership');
+    $query->propertyCondition('gid', $this->_id);
+    $query->propertyOrderBy('grid', 'DESC');
+
+    $result = $query->execute();
+    $group_memberships = array();
+    if (isset($result['group_membership'])) {
+      $group_memberships = entity_load('group_membership', array_keys($result['group_membership']));
+
+
+      foreach ($group_memberships as &$gm) {
+        $gm->_user = user_load($gm->uid);
+      }
+    }
+
+    return $group_memberships;
+  }
+
+  /**
+   *  Get role label
+   */
+  public function getUsersRole($group_membership) {
+    return $this->group_roles[intVal($group_membership->grid)];
+  }
+
+  /**
+   *  Check to see if a user has membership.
+   */
+  public function isUserMember($uid) {
+    $query = new EntityFieldQuery();
+    $query->entityCondition('entity_type', 'group_membership');
+    $query->propertyCondition('uid', $uid);
+    $query->propertyCondition('gid', $this->_id);
+
+    $result = $query->execute();
+    $group_memberships = array();
+    if (isset($result['group_membership'])) {
+      return TRUE;
+    }
+
+    return FALSE;
   }
 }
 
@@ -131,3 +200,68 @@ function group_form_submit($form, &$form_state) {
 
   $form_state['redirect'] = 'admin/group';
 }
+
+/**
+ * Form functions to add a user to a group.
+ */
+function group_add_user_by_email_form($form, &$form_state, $group) {
+  $form = array();
+
+  $form_state['#group'] = $group;
+
+  $form['fieldset'] = array(
+    '#type' => 'fieldset',
+  );
+
+  $form['fieldset']['email'] = array(
+    '#type' => 'textfield',
+    '#title' => 'Email',
+    '#description' => t('Enter and email address and the user will be added or created.'),
+    '#required' => TRUE,
+  );
+
+  $form['fieldset']['actions'] = array();
+
+  $form['fieldset']['actions']['submit'] = array(
+    '#type' => 'submit',
+    '#value' => 'Enroll',
+  );
+
+
+
+  return $form;
+}
+
+function group_add_user_by_email_form_validate($form, &$form_state) {
+  if (!valid_email_address($form_state['values']['email'])) {
+    form_set_error('email', 'You need to enter a valid email address');
+  }
+}
+
+function group_add_user_by_email_form_submit($form, &$form_state) {
+  $group = $form_state['#group'];
+
+  // First check to see if user exists.
+  if ($user = user_load_by_mail($form_state['values']['email'])) {
+    // If user exists, check to see if user is alreadu in the group.
+    if ($group->isUserMember($user->uid)) {
+      drupal_set_message('User already in group.');
+    }
+    else {
+
+      $gm = entity_create('group_membership', array());
+      $gm->gid = $group->_id;
+      $gm->grid = 0;
+      $gm->uid = $user->uid;
+
+      $gm->save();
+
+      drupal_set_message('User added');
+    }
+  }
+  // If not, create and send an email.
+  else {
+
+  }
+}
+
