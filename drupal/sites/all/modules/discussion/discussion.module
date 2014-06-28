@@ -78,76 +78,88 @@ function luw_dashboard_page_view() {
 
   // Pull all comments and nodes...
 
-  // Get nids within groups.
-  $nodes = array();
 
-  $query = new EntityFieldQuery();
-  $query->entityCondition('entity_type', 'group_content');
-  $query->propertyCondition('entity_type', 'node');
-  $query->propertyCondition('gid', array_keys($groups));
 
-  $results = $query->execute();
+  if (!empty($groups)) {
 
-  if (isset($results['group_content'])) {
-    $group_contents = entity_load('group_content', array_keys($results['group_content']));
+    // Get nids within groups.
+    $nodes = array();
 
-    foreach ($group_contents as $group) {
-      $nodes[] = $group->eid;
+    $query = new EntityFieldQuery();
+    $query->entityCondition('entity_type', 'group_content');
+    $query->propertyCondition('entity_type', 'node');
+    $query->propertyCondition('gid', array_keys($groups));
+
+    $results = $query->execute();
+
+    if (isset($results['group_content'])) {
+      $group_contents = entity_load('group_content', array_keys($results['group_content']));
+
+      foreach ($group_contents as $group) {
+        $nodes[] = $group->eid;
+      }
     }
-  }
-  $nodes = array_unique($nodes);
 
-  // Load content by created date...
-  $items = array();
-  foreach ($nodes as $nid) {
-    $node = node_load($nid);
-    $node->__content_type = 'node';
-    // add to array
-    $items[] = $node;
-  }
 
-  if (!empty($nodes)) {
-    $c_query = new EntityFieldQuery();
-    $c_query->entityCondition('entity_type', 'comment');
-    $c_query->propertyCondition('nid', $nodes, 'IN');
-    $c_query->propertyOrderBy('created', 'DESC');
+    $nodes = array_unique($nodes);
 
-    $c_result = $c_query->execute();
-    if (isset($c_result['comment'])) {
-      $comments = entity_load('comment', array_keys($c_result['comment']));
+    // Load content by created date...
+    $items = array();
+    foreach ($nodes as $nid) {
+      $node = node_load($nid);
+      $node->__content_type = 'node';
+      // add to array
+      $items[] = $node;
+    }
 
-      foreach ($comments as $comment) {
-        $comment->__content_type = 'comment';
-        // add to array
-        $items[] = $comment;
+    if (!empty($nodes)) {
+      $c_query = new EntityFieldQuery();
+      $c_query->entityCondition('entity_type', 'comment');
+      $c_query->propertyCondition('nid', $nodes, 'IN');
+      $c_query->propertyOrderBy('created', 'DESC');
+
+      $c_result = $c_query->execute();
+      if (isset($c_result['comment'])) {
+        $comments = entity_load('comment', array_keys($c_result['comment']));
+
+        foreach ($comments as $comment) {
+          $comment->__content_type = 'comment';
+          // add to array
+          $items[] = $comment;
+        }
+
+      }
+    }
+
+    usort($items, '_sort_entities_by_created');
+
+    foreach ($items as $item) {
+
+      $entity_type = $item->__content_type;
+
+      if ($entity_type == 'node') {
+        $content = node_view($item, 'latest_feed', $item->language);
+      }
+      else {
+        $content = comment_view($item, node_load($item->nid), 'latest_feed', $item->language);
       }
 
+      $content += array(
+        '#theme' => 'entity',
+        '#entity_type' => $entity_type,
+        '#entity' => $item,
+        '#view_mode' => 'latest_feed',
+        '#language' => $item->language,
+        '#page' => NULL,
+      );
+
+      $build['#items'][] = render($content);
+      //$build['#items'][] = array('data' => $content);
     }
   }
-
-  usort($items, '_sort_entities_by_created');
-
-  foreach ($items as $item) {
-
-    $entity_type = $item->__content_type;
-
-    if ($entity_type == 'node') {
-      $content = node_view($item, 'latest_feed', $item->language);
-    }
-    else {
-      $content = comment_view($item, node_load($item->nid), 'latest_feed', $item->language);
-    }
-
-    $content += array(
-      '#theme' => 'entity',
-      '#entity_type' => $entity_type,
-      '#entity' => $item,
-      '#view_mode' => 'latest_feed',
-      '#language' => $item->language,
-      '#page' => NULL,
-    );
-
-    $build['#items'][] = render($content);
+  else {
+    // TODO: dosomething here...
+    $build['#items'][] = 'You do not belong to any groups.';
   }
 
   return $build;
@@ -182,7 +194,7 @@ function luw_group_membership_page_view($group) {
   // Build Breadcrumbs
   $breadcrumb = array();
   $breadcrumb[] = l('Dashboard', '<front>');
-  $breadcrumb[] = l($group->label() . ' Dashboard', 'group/' . $group->_id);
+  $breadcrumb[] = l($group->label() . ' Dashboard', 'group/' . $group->gid);
 
   // Set Breadcrumbs
   drupal_set_breadcrumb($breadcrumb);
@@ -351,7 +363,7 @@ function discussion_preprocess_page(&$variables) {
       }
 
       $sidebar['groups']['#items'][] = array(
-        'data' => l($str, 'group/' . $group->_id),
+        'data' => l($str, 'group/' . $group->gid),
       );
     }
 
@@ -364,14 +376,14 @@ function discussion_preprocess_page(&$variables) {
     );
 
   }
-  else {
+  elseif($q[0] == 'group') {
     $group = menu_get_object('group', 1);
 
     // Setup mini calendar
     $sidebar['mini_calendar'] = array(
       '#theme' => 'mini_calendar',
       '#attributes' => array(
-        'data-href' => '/api/group-events/' . $group->_id,
+        'data-href' => '/api/group-events/' . $group->gid,
       ),
     );
   }

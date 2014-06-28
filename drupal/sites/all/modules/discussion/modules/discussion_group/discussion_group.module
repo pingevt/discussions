@@ -1,6 +1,21 @@
 <?php
 
 /**
+ * Implements hook_menu().
+ */
+function discussion_group_menu() {
+  $items['admin/group/%'] = array(
+    'title' => 'Group',
+    'page callback' => 'group_admin_page',
+    'access callback' => 'group_entity_access',
+    'access arguments' => array(2, 'admin'),
+    'file' => 'includes/group.inc',
+    'type' => MENU_SUGGESTED_ITEM,
+  );
+  return $items;
+}
+
+/**
  * Implements hook_entity_info().
  */
 function discussion_group_entity_info() {
@@ -10,23 +25,23 @@ function discussion_group_entity_info() {
     'label' => t('Group'),
     'controller class' => 'GroupController',
     'entity class' => 'Group',
-    'load hook' => 'luw_group_load',
-    'uri callback' => 'luw_group_uri',
-    //'label callback' => 'luw_group_label',
+    'load hook' => 'group_load',
+    'uri callback' => 'group_uri',
+    //'label callback' => 'group_label',
     'fieldable' => TRUE,
     'revisionable' => TRUE,
     'access callback' => 'group_entity_access',
     'entity keys' => array(
-      'id' => '_id',
-      'revision' => '_revision_id',
+      'id' => 'gid',
+      'revision' => 'vgid',
       'label' => 'group_name',
-      'bundle' => '_bundle',
+      'bundle' => 'type',
     ),
     'bundles' => array(
       'group' => array(
         'label' => t('Group'),
         'admin' => array(
-          'path' => 'admin/structure/group/manage',
+          'path' => 'admin/group/manage',
           'access arguments' => array('administer groups'),
         ),
       ),
@@ -40,6 +55,8 @@ function discussion_group_entity_info() {
       'file' => 'includes/group.inc',
     ),
     'module' => 'discussion_group',
+    'base table' => 'discussion_group',
+    'revision table' => 'discussion_group_revision',
   );
 
   $items['group_membership'] = array(
@@ -52,9 +69,8 @@ function discussion_group_entity_info() {
     'fieldable' => TRUE,
     'access callback' => 'group_membership_entity_access',
     'entity keys' => array(
-      'id' => '_id',
-      'revision' => '_revision_id',
-      'bundle' => '_bundle',
+      'id' => 'gmid',
+      'bundle' => 'type',
     ),
     'bundles' => array(
       'membership' => array(
@@ -69,6 +85,7 @@ function discussion_group_entity_info() {
 
     ),
     'module' => 'discussion_group',
+    'base table' => 'discussion_group_membership',
   );
 
   $items['group_content'] = array(
@@ -226,12 +243,8 @@ function group_load($gid) {
   return entity_load_single('group', $gid);
 }
 
-function luw_group_uri() {
-
-}
-
-function luw_group_label() {
-
+function group_uri($group) {
+  return array('path' => 'admin/group/' . $group->gid);
 }
 
 function group_entity_access($group_id) {
@@ -309,6 +322,7 @@ function discussion_group_form_alter(&$form, &$form_state, $form_id) {
     $form['actions']['submit']['#submit'][] = 'luw_node_form_submit';
 
   }
+
 }
 
 function luw_node_form_submit(&$form, &$form_state) {

@@ -1,5 +1,111 @@
 <?php
 
+function _discussion_group_table() {
+  return array(
+    'description' => 'The base table for group.',
+    'fields' => array(
+      'gid' => array(
+        'description' => 'The primary identifier for the entity.',
+        'type' => 'serial',
+        'unsigned' => TRUE,
+        'not null' => TRUE
+      ),
+      'type' => array(
+        'description' => 'The {group_type} of this node.',
+        'type' => 'varchar',
+        'length' => 32,
+        'not null' => TRUE,
+        'default' => ''
+      ),
+      'vgid' => array(
+        'description' => 'The version identifier for the group.',
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => FALSE,
+        'default' => 0,
+      ),
+      'group_name' => array(
+        'description' => 'The name of the group.',
+        'type' => 'varchar',
+        'length' => 32,
+        'not null' => TRUE,
+        'default' => ''
+      ),
+      'created' => array(
+        'description' => 'The Unix timestamp when the group was created.',
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'updated' => array(
+        'description' => 'The Unix timestamp when the group was most recently saved.',
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+    ),
+    'indexes' => array(
+      'group_changed' => array('updated'),
+      'group_created' => array('created'),
+    ),
+    'unique keys' => array(
+      'gid_vgid' => array('gid', 'vgid'),
+      'gid' => array('gid'),
+    ),
+    'foreign keys' => array(
+      'group_revision' => array(
+        'table' => 'discussion_group_revision',
+        'columns' => array('vgid' => 'vgid'),
+      ),
+    ),
+    'primary key' => array('gid'),
+  );
+}
+
+function _discussion_group_revision_table() {
+  return array(
+    'description' => 'The base table for group.',
+    'fields' => array(
+      'vgid' => array(
+        'description' => 'The primary identifier for the entity.',
+        'type' => 'serial',
+        'unsigned' => TRUE,
+        'not null' => TRUE
+      ),
+      'group_name' => array(
+        'description' => 'The name of the group.',
+        'type' => 'varchar',
+        'length' => 32,
+        'not null' => TRUE,
+        'default' => ''
+      ),
+      'created' => array(
+        'description' => 'The Unix timestamp when the group was created.',
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'updated' => array(
+        'description' => 'The Unix timestamp when the group was most recently saved.',
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+    ),
+    'indexes' => array(),
+    'unique keys' => array(
+      'vgid' => array('vgid'),
+    ),
+    'foreign keys' => array(
+      'group_revision' => array(
+        'table' => 'discussion_group_revision',
+        'columns' => array('vgid' => 'vgid'),
+      ),
+    ),
+    'primary key' => array('vgid'),
+  );
+}
+
 function _discussion_group_content_table() {
   return array(
     'description' => 'The base table for group_content.',
@@ -57,14 +163,120 @@ function _discussion_group_content_table() {
       ),
     ),
     'indexes' => array(
-      'node_changed' => array('updated'),
-      'node_created' => array('created'),
+      'changed' => array('updated'),
+      'created' => array('created'),
     ),
     'unique keys' => array(
       'gid_eid' => array('gid', 'eid'),
       'gcid' => array('gcid'),
     ),
+    'foreign keys' => array(
+      'group' => array(
+        'table' => 'discussion_group',
+        'columns' => array('gid' => 'gid'),
+      ),
+    ),
     'primary key' => array('gcid'),
+  );
+}
+
+function _discussion_group_membership_table() {
+  return array(
+    'description' => 'The base table for group_membership.',
+    'fields' => array(
+      'gmid' => array(
+        'description' => 'The primary identifier for the group_membership.',
+        'type' => 'serial',
+        'unsigned' => TRUE,
+        'not null' => TRUE
+      ),
+      'type' => array(
+        'description' => 'The {group_membership_type} of this node.',
+        'type' => 'varchar',
+        'length' => 32,
+        'not null' => TRUE,
+        'default' => ''
+      ),
+      'gid' => array(
+        'description' => 'The primary identifier for the group.',
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE
+      ),
+      'uid' => array(
+        'description' => 'The primary identifier for the user.',
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE
+      ),
+      'grid' => array(
+        'description' => 'The primary identifier for the group role.',
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE
+      ),
+      'created' => array(
+        'description' => 'The Unix timestamp when the gm was created.',
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'updated' => array(
+        'description' => 'The Unix timestamp when the gm was most recently saved.',
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+    ),
+    'indexes' => array(
+      'gm_changed' => array('updated'),
+      'gm_created' => array('created'),
+    ),
+    'unique keys' => array(
+      'gid_uid' => array('gid', 'uid'),
+      'gmid' => array('gmid'),
+    ),
+    'foreign keys' => array(
+      'group' => array(
+        'table' => 'discussion_group',
+        'columns' => array('gid' => 'gid'),
+      ),
+      'users' => array(
+        'table' => 'users',
+        'columns' => array('uid' => 'uid'),
+      ),
+      'group_role' => array(
+        'table' => 'discussion_group_role',
+        'columns' => array('grid' => 'grid'),
+      ),
+    ),
+    'primary key' => array('gmid'),
+  );
+}
+
+function _discussion_group_role_table() {
+  return array(
+    'description' => 'The base table for group.',
+    'fields' => array(
+      'grid' => array(
+        'description' => 'The primary identifier for the role.',
+        'type' => 'serial',
+        'unsigned' => TRUE,
+        'not null' => TRUE
+      ),
+      'name' => array(
+        'description' => 'The name of the role.',
+        'type' => 'varchar',
+        'length' => 32,
+        'not null' => TRUE,
+        'default' => ''
+      ),
+    ),
+    'indexes' => array(),
+    'unique keys' => array(
+      'gid' => array('grid'),
+    ),
+    'primary key' => array('grid'),
   );
 }
 
@@ -73,25 +285,37 @@ function _discussion_group_content_table() {
  * Implements hook_schema().
  */
 function discussion_group_schema() {
+  $schema['discussion_group'] = _discussion_group_table();
+  $schema['discussion_group_revision'] = _discussion_group_revision_table();
   $schema['discussion_group_content'] = _discussion_group_content_table();
+  $schema['discussion_group_membership'] = _discussion_group_membership_table();
+  $schema['discussion_group_role'] = _discussion_group_role_table();
   return $schema;
 }
-
-/**
- * Implements hook_update().
- */
-function discussion_group_update($node) {
-  db_update('mytable')
-    ->fields(array('extra' => $node->extra))
-    ->condition('nid', $node->nid)
-    ->execute();
-}
-
 
 /**
  * Adds table.
  */
 function discussion_group_update_7001() {
   db_create_table('discussion_group_content', _discussion_group_content_table());
+}
+
+/**
+ * Adds more tables.
+ */
+function discussion_group_update_7002() {
+  db_create_table('discussion_group', _discussion_group_table());
+  db_create_table('discussion_group_revision', _discussion_group_revision_table());
+  db_create_table('discussion_group_membership', _discussion_group_membership_table());
+  db_create_table('discussion_group_role', _discussion_group_role_table());
+}
+
+/**
+ * Adds default group roles content.
+ */
+function discussion_group_update_7004() {
+  db_insert('discussion_group_role')->fields(array('grid' => 1, 'name' => 'Member'))->execute();
+  db_insert('discussion_group_role')->fields(array('grid' => 5, 'name' => 'Editor'))->execute();
+  db_insert('discussion_group_role')->fields(array('grid' => 10, 'name' => 'Owner'))->execute();
 }
 

@@ -9,7 +9,7 @@ define('GROUP_ROLE_EDITOR_ID', 5);
 define('GROUP_ROLE_MEMBER_ID', 0);
 */
 
-class Group extends MongoEntity {
+class Group extends Entity {
 
   private $group_roles = array(
     0 => 'Member',
@@ -22,8 +22,8 @@ class Group extends MongoEntity {
    */
   function __construct(array $values, $entity_type = NULL) {
     parent::__construct($values, $entity_type);
-    if (!isset($this->_bundle)) {
-      $this->_bundle = 'group';
+    if (!isset($this->type)) {
+      $this->type = 'group';
     }
   }
 
@@ -36,9 +36,9 @@ class Group extends MongoEntity {
     $query = new EntityFieldQuery();
     $query->entityCondition('entity_type', 'group_membership');
     $query->propertyCondition('uid', $user->uid);
-    $query->propertyOrderBy('group_name', 'ASC');
 
     $result = $query->execute();
+
     $group_memberships = array();
     if (isset($result['group_membership'])) {
       $group_memberships = entity_load('group_membership', array_keys($result['group_membership']));
@@ -60,7 +60,7 @@ class Group extends MongoEntity {
 
     $query = new EntityFieldQuery();
     $query->entityCondition('entity_type', 'group_membership');
-    $query->propertyCondition('gid', $this->_id);
+    $query->propertyCondition('gid', $this->gid);
     $query->propertyOrderBy('grid', 'DESC');
 
     $result = $query->execute();
@@ -91,7 +91,7 @@ class Group extends MongoEntity {
     $query = new EntityFieldQuery();
     $query->entityCondition('entity_type', 'group_membership');
     $query->propertyCondition('uid', $uid);
-    $query->propertyCondition('gid', $this->_id);
+    $query->propertyCondition('gid', $this->gid);
 
     $result = $query->execute();
     $group_memberships = array();
@@ -114,7 +114,7 @@ class Group extends MongoEntity {
     $query = new EntityFieldQuery();
     $query->entityCondition('entity_type', 'group_content');
     $query->propertyCondition('entity_type', 'node');
-    $query->propertyCondition('gid', $this->_id);
+    $query->propertyCondition('gid', $this->gid);
     $query->propertyCondition('eid', $node->nid);
 
     $results = $query->execute();
@@ -129,7 +129,7 @@ class Group extends MongoEntity {
   }
 }
 
-class GroupController extends MongoEntityController {
+class GroupController extends EntityAPIController {
   /**
    * {@inheritdoc}
    */
@@ -138,7 +138,7 @@ class GroupController extends MongoEntityController {
 
     $query = new EntityFieldQuery();
     $query->entityCondition('entity_type', 'group_membership');
-    $query->propertyCondition('gid', $entity->_id);
+    $query->propertyCondition('gid', $entity->gid);
     $query->propertyCondition('grid', 10);
 
     $result = $query->execute();
@@ -157,7 +157,7 @@ class GroupController extends MongoEntityController {
 
     if ($save_new_owner) {
       $gm = entity_create('group_membership', array());
-      $gm->gid = $entity->_id;
+      $gm->gid = $entity->gid;
       $gm->grid = 10;
       $gm->uid = $entity->field_owner[LANGUAGE_NONE][0]['target_id'];
 
@@ -167,7 +167,7 @@ class GroupController extends MongoEntityController {
   }
 }
 
-class GroupUIController extends MongoEntityDefaultUIController {
+class GroupUIController extends EntityDefaultUIController {
 
 }
 
@@ -276,7 +276,7 @@ function group_add_user_by_email_form_submit($form, &$form_state) {
     else {
 
       $gm = entity_create('group_membership', array());
-      $gm->gid = $group->_id;
+      $gm->gid = $group->gid;
       $gm->grid = 0;
       $gm->uid = $user->uid;
 
@@ -291,3 +291,7 @@ function group_add_user_by_email_form_submit($form, &$form_state) {
   }
 }
 
+function group_admin_page() {
+  // TODO: add this page
+  print 'hi';
+}

@@ -1,6 +1,6 @@
 <?php
 
-class GroupMembership extends MongoEntity {
+class GroupMembership extends Entity {
 
   public $gid;
   public $uid;
@@ -13,17 +13,17 @@ class GroupMembership extends MongoEntity {
    */
   function __construct(array $values, $entity_type = NULL) {
     parent::__construct($values, $entity_type);
-    if (!isset($this->_bundle)) {
-      $this->_bundle = 'group_membership';
+    if (!isset($this->type)) {
+      $this->type = 'membership';
     }
   }
 
 }
 
-class GroupMembershipController extends MongoEntityController {
+class GroupMembershipController extends EntityAPIController {
 
 }
 
-class GroupMembershipUIController extends MongoEntityDefaultUIController {
+class GroupMembershipUIController extends EntityDefaultUIController {
 
 }
