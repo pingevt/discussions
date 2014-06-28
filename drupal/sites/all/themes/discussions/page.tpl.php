@@ -1,8 +1,6 @@
 
   <div id="branding" class="clearfix">
     <div class="container">
-      <?php //print $breadcrumb; ?>
-
       <?php print render($title_prefix); ?>
       <?php if ($title): ?>
         <h1 class="page-title"><?php print $title; ?></h1>
@@ -14,6 +12,9 @@
 
   <div id="page">
     <div class="container">
+
+      <?php print $breadcrumb; ?>
+
       <?php print render($primary_local_tasks); ?>
       <?php if ($secondary_local_tasks): ?>
         <div class="tabs-secondary clearfix"><?php print render($secondary_local_tasks); ?></div>
@@ -31,7 +32,36 @@
         </div>
       <?php endif; ?>
       <?php if ($action_links): ?><ul class="action-links"><?php print render($action_links); ?></ul><?php endif; ?>
-      <?php print render($page['content']); ?>
+
+
+
+
+      <?php //print render($page['content']); ?>
+      <div class="row">
+        <?php if (isset($page['sidebar'])) : ?>
+        <div class="col-md-4 sidebar">
+          <?php  print render($page['sidebar']); ?>
+        </div>
+        <div class="col-md-10">
+          <?php
+            print render($page['content']);
+          ?>
+        </div>
+
+        <?php else: ?>
+
+        <div class="col-md-14">
+          <?php
+            print render($page['content']);
+          ?>
+        </div>
+
+        <?php endif; ?>
+
+      </div>
+
+
+
     </div>
 
     <div id="footer" class="container">

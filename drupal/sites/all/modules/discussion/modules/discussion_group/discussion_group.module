@@ -222,7 +222,7 @@ function discussion_group_permission() {
   );
 }
 
-function luw_group_load($gid) {
+function group_load($gid) {
   return entity_load_single('group', $gid);
 }
 
@@ -240,7 +240,7 @@ function group_entity_access($group_id) {
   return TRUE;
 }
 
-function luw_group_membership_load() {
+function group_membership_load() {
 
 }
 
@@ -349,4 +349,39 @@ function luw_node_form_submit(&$form, &$form_state) {
 
     $gc->save();
   }
+}
+
+
+/**
+ * Implements hook_node_access().
+ */
+function discussion_group_node_access($node, $op, $account) {
+  $type = is_string($node) ? $node : $node->type;
+
+  if (!is_string($node)) {
+
+    $groups = Group::getCurrentUserGroups();
+    // Default to not allow.
+    $allow = FALSE;
+    foreach ($groups as $group) {
+      if ($group->isNodeInGroup($node)) {
+        $allow = TRUE;
+      }
+    }
+
+    // Returning nothing from this function would have the same effect.
+    return ($allow)? NODE_ACCESS_IGNORE : NODE_ACCESS_DENY;
+  }
+
+  return NODE_ACCESS_IGNORE;
+}
+
+/**
+ * Implements hook_node_access().
+ */
+function discussion_group_file_entity_access($op, $file, $account) {
+  // Deny all direct access to files.
+
+  // Returning nothing from this function would have the same effect.
+  return FILE_ENTITY_ACCESS_DENY;
 }

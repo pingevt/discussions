@@ -101,6 +101,32 @@ class Group extends MongoEntity {
 
     return FALSE;
   }
+
+  public function isOwner($user) {
+    if ($this->field_owner[LANGUAGE_NONE][0]['target_id'] == $user->uid) {
+      return TRUE;
+    }
+
+    return FALSE;
+  }
+
+  public function isNodeInGroup($node) {
+    $query = new EntityFieldQuery();
+    $query->entityCondition('entity_type', 'group_content');
+    $query->propertyCondition('entity_type', 'node');
+    $query->propertyCondition('gid', $this->_id);
+    $query->propertyCondition('eid', $node->nid);
+
+    $results = $query->execute();
+
+    if (isset($results['group_content'])) {
+      return TRUE;
+    }
+    else {
+      return FALSE;
+    }
+
+  }
 }
 
 class GroupController extends MongoEntityController {

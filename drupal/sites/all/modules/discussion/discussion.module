@@ -18,7 +18,7 @@ function discussion_menu() {
     'type' => MENU_SUGGESTED_ITEM,
   );
 
-  $items['group/%luw_group'] = array(
+  $items['group/%group'] = array(
     'title' => '',
     'page callback' => 'luw_group_dashboard_page_view',
     'page arguments' => array(1),
@@ -27,7 +27,7 @@ function discussion_menu() {
     'type' => MENU_SUGGESTED_ITEM,
   );
 
-  $items['group/%luw_group/memberships'] = array(
+  $items['group/%group/memberships'] = array(
     'title' => '',
     'page callback' => 'luw_group_membership_page_view',
     'page arguments' => array(1),
@@ -63,62 +63,14 @@ function luw_login_page_view() {
 }
 
 function luw_dashboard_page_view() {
+  global $user;
+
   drupal_set_title('Dashboard');
 
-  $build = array();
-  $build['#theme'] = 'dashboard_content';
-
-  // Set up user block.
-  $build['user'] = _build_user_block();
-
-
-  // Set up groups block.
-  $build['groups'] = array(
-    '#theme' => 'item_list',
-    '#items' => array(),
-    '#title' => t('Groups'),
-  );
-
   $groups = Group::getCurrentUserGroups();
-  foreach ($groups as $gid => $group) {
-    $build['groups']['#items'][] = array(
-      'data' => l($group->label(), 'group/' . $group->_id),
-    );
-  }
-
-  // Setup add content block
-  /*
-  $build['add_content'] = array(
-    '#theme' => 'item_list',
-    '#items' => array(
-      array(
-        'data' => l('Add Discussion', 'node/add/discussion'),
-      ),
-      array(
-        'data' => l('Add Event', 'node/add/event'),
-      ),
-      array(
-        'data' => l('Add Gallery', 'node/add/gallery'),
-      ),
-      array(
-        'data' => l('Add Image', 'node/add/image'),
-      ),
-    ),
-    '#title' => t('Add content'),
-  );
-  */
-
-
-  // Setup mini calendar
-  $build['mini_calendar'] = array(
-    '#theme' => 'mini_calendar',
-    '#attributes' => array(
-      'data-href' => '/api/current-events',
-    ),
-  );
 
   // Add main content
-  $build['content'] = array(
+  $build = array(
     '#theme' => 'item_list',
     '#items' => array(),
     '#title' => t('Latest Content'),
@@ -175,7 +127,6 @@ function luw_dashboard_page_view() {
 
   usort($items, '_sort_entities_by_created');
 
-
   foreach ($items as $item) {
 
     $entity_type = $item->__content_type;
@@ -196,7 +147,7 @@ function luw_dashboard_page_view() {
       '#page' => NULL,
     );
 
-    $build['content']['#items'][] = render($content);
+    $build['#items'][] = render($content);
   }
 
   return $build;
@@ -211,11 +162,15 @@ function _sort_entities_by_created($a, $b) {
 
 function luw_group_dashboard_page_view($group) {
   drupal_set_title($group->label());
-  $build = array();
-  $build['#theme'] = 'group_content';
 
-  // Set up user block.
-  $build['user'] = _build_user_block();
+  // Build Breadcrumbs
+  $breadcrumb = array();
+  $breadcrumb[] = l('Dashboard', '<front>');
+
+  // Set Breadcrumbs
+  drupal_set_breadcrumb($breadcrumb);
+
+  $build = array();
 
   return $build;
 }
@@ -223,6 +178,16 @@ function luw_group_dashboard_page_view($group) {
 function luw_group_membership_page_view($group) {
   $build = array();
   drupal_set_title($group->label() . ' Group Memberships');
+
+  // Build Breadcrumbs
+  $breadcrumb = array();
+  $breadcrumb[] = l('Dashboard', '<front>');
+  $breadcrumb[] = l($group->label() . ' Dashboard', 'group/' . $group->_id);
+
+  // Set Breadcrumbs
+  drupal_set_breadcrumb($breadcrumb);
+
+
 
   // Add user
   $build['add_user'] = drupal_get_form('group_add_user_by_email_form', $group);
@@ -254,6 +219,10 @@ function luw_group_membership_page_view($group) {
  */
 function discussion_theme($existing, $type, $theme, $path) {
   return array(
+    'discussion_page_wrapper' => array(
+      'template' => 'templates/discussion-page-wrapper',
+      'render element' => 'element',
+    ),
     'dashboard_content' => array(
       'template' => 'templates/dashboard-content',
       'render element' => 'element',
@@ -347,4 +316,68 @@ function current_events_callback() {
   }
 
   return $output;
+}
+
+/**
+ * Implements hook_preprocess_HOOK().
+ */
+function discussion_preprocess_page(&$variables) {
+  global $user;
+
+  $sidebar = NULL;
+
+  // add user block, always
+  $sidebar['user'] = _build_user_block();
+
+  $dashboard = ($_GET['q'] == 'dashboard')? TRUE : FALSE;
+  $q = $_GET['q'];
+  $q = explode('/', $q);
+
+  if ($dashboard) {
+    $groups = Group::getCurrentUserGroups();
+    // Set up groups block.
+    $sidebar['groups'] = array(
+      '#theme' => 'item_list',
+      '#items' => array(),
+      '#title' => t('Groups'),
+    );
+
+    $groups = Group::getCurrentUserGroups();
+    foreach ($groups as $gid => $group) {
+      $str = $group->label();
+
+      if ($group->isOwner($user)) {
+        $str .= ' (Owner)';
+      }
+
+      $sidebar['groups']['#items'][] = array(
+        'data' => l($str, 'group/' . $group->_id),
+      );
+    }
+
+    // Setup mini calendar
+    $sidebar['mini_calendar'] = array(
+      '#theme' => 'mini_calendar',
+      '#attributes' => array(
+        'data-href' => '/api/current-events',
+      ),
+    );
+
+  }
+  else {
+    $group = menu_get_object('group', 1);
+
+    // Setup mini calendar
+    $sidebar['mini_calendar'] = array(
+      '#theme' => 'mini_calendar',
+      '#attributes' => array(
+        'data-href' => '/api/group-events/' . $group->_id,
+      ),
+    );
+  }
+
+  if (!is_null($sidebar) && !(isset($q[2]) && $q[2] == 'memberships')) {
+    $variables['page']['sidebar'] = $sidebar;
+  }
+
 }
