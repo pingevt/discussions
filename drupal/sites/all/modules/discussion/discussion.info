@@ -6,3 +6,7 @@ core = 7.x
 dependencies[] = discussion_group
 
 version = "7.x-0.1"
+
+
+files[] = templates/node--latest-feed.tpl.php
+files[] = templates/comment--latest-feed.tpl.php

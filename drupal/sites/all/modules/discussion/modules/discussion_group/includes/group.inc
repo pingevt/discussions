@@ -237,6 +237,7 @@ function group_add_user_by_email_form($form, &$form_state, $group) {
 
   $form['fieldset'] = array(
     '#type' => 'fieldset',
+    '#title' => 'Add user',
   );
 
   $form['fieldset']['email'] = array(

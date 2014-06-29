@@ -1,5 +1,7 @@
 <?php
 
+define('DISCUSSION_PATH', drupal_get_path('module', 'discussion'));
+
 /**
  * Implements hook_menu().
  */
@@ -71,71 +73,26 @@ function luw_dashboard_page_view() {
 
   // Add main content
   $build = array(
-    '#theme' => 'item_list',
-    '#items' => array(),
-    '#title' => t('Latest Content'),
+
+    '#type' => 'container',
+    'items' => array(),
+    '#prefix' => '<div id="latest-content-item-list">',
+    '#suffix' => '</div>',
   );
 
   // Pull all comments and nodes...
-
-
-
   if (!empty($groups)) {
+    $page = isset($_GET['page'])? $_GET['page'] : 0;
+    $page_count = 20;
+    $offset = $page * $page_count;
 
-    // Get nids within groups.
-    $nodes = array();
+    $count = _pull_latest_content(NULL, NULL, NULL);
 
-    $query = new EntityFieldQuery();
-    $query->entityCondition('entity_type', 'group_content');
-    $query->propertyCondition('entity_type', 'node');
-    $query->propertyCondition('gid', array_keys($groups));
-
-    $results = $query->execute();
-
-    if (isset($results['group_content'])) {
-      $group_contents = entity_load('group_content', array_keys($results['group_content']));
-
-      foreach ($group_contents as $group) {
-        $nodes[] = $group->eid;
-      }
-    }
-
-
-    $nodes = array_unique($nodes);
-
-    // Load content by created date...
-    $items = array();
-    foreach ($nodes as $nid) {
-      $node = node_load($nid);
-      $node->__content_type = 'node';
-      // add to array
-      $items[] = $node;
-    }
-
-    if (!empty($nodes)) {
-      $c_query = new EntityFieldQuery();
-      $c_query->entityCondition('entity_type', 'comment');
-      $c_query->propertyCondition('nid', $nodes, 'IN');
-      $c_query->propertyOrderBy('created', 'DESC');
-
-      $c_result = $c_query->execute();
-      if (isset($c_result['comment'])) {
-        $comments = entity_load('comment', array_keys($c_result['comment']));
-
-        foreach ($comments as $comment) {
-          $comment->__content_type = 'comment';
-          // add to array
-          $items[] = $comment;
-        }
-
-      }
-    }
-
-    usort($items, '_sort_entities_by_created');
+    $items = _pull_latest_content(NULL, $offset, $page_count);
 
     foreach ($items as $item) {
 
-      $entity_type = $item->__content_type;
+      $entity_type = $item->__nc;
 
       if ($entity_type == 'node') {
         $content = node_view($item, 'latest_feed', $item->language);
@@ -153,9 +110,17 @@ function luw_dashboard_page_view() {
         '#page' => NULL,
       );
 
-      $build['#items'][] = render($content);
-      //$build['#items'][] = array('data' => $content);
+      $build['items'][] = $content;
     }
+
+    $max = ceil($count/$page_count) - 1;
+    if ($max < 0) $max = 0;
+
+    $build['pager'] = array(
+      '#theme' => 'latest_feed_pager',
+      '#page' => $page,
+      '#max' => $max,
+    );
   }
   else {
     // TODO: dosomething here...
@@ -182,7 +147,54 @@ function luw_group_dashboard_page_view($group) {
   // Set Breadcrumbs
   drupal_set_breadcrumb($breadcrumb);
 
-  $build = array();
+  // Add main content
+  $build = array(
+    '#type' => 'container',
+    'items' => array(),
+    '#prefix' => '<div id="latest-content-item-list">',
+    '#suffix' => '</div>',
+  );
+
+
+  $page = isset($_GET['page'])? $_GET['page'] : 0;
+  $page_count = 20;
+  $offset = $page * $page_count;
+
+  $count = _pull_latest_content($group, NULL, NULL);
+
+  $items = _pull_latest_content($group, $offset, $page_count);
+
+  foreach ($items as $item) {
+
+    $entity_type = $item->__nc;
+
+    if ($entity_type == 'node') {
+      $content = node_view($item, 'latest_feed', $item->language);
+    }
+    else {
+      $content = comment_view($item, node_load($item->nid), 'latest_feed', $item->language);
+    }
+
+    $content += array(
+      '#theme' => 'entity',
+      '#entity_type' => $entity_type,
+      '#entity' => $item,
+      '#view_mode' => 'latest_feed',
+      '#language' => $item->language,
+      '#page' => NULL,
+    );
+
+    $build['items'][] = $content;
+  }
+
+  $max = ceil($count/$page_count) - 1;
+  if ($max < 0) $max = 0;
+
+  $build['pager'] = array(
+    '#theme' => 'latest_feed_pager',
+    '#page' => $page,
+    '#max' => $max,
+  );
 
   return $build;
 }
@@ -226,11 +238,72 @@ function luw_group_membership_page_view($group) {
   return $build;
 }
 
+function _pull_latest_content($group = NULL, $offset = 0, $limit = 10) {
+  $items = array();
+  $groups = array();
+
+  if ($group == NULL) {
+    $groups = Group::getCurrentUserGroups();
+  }
+  elseif (is_a($group, 'Group')) {
+    $groups = array($group->gid => $group);
+  }
+
+  if (!empty($groups)) {
+
+    $query = "(
+    SELECT 'node' AS nc, n.nid AS id, n.created
+    FROM {discussion_group_content} dgc
+    JOIN {node} n ON dgc.eid = n.nid
+    WHERE dgc.entity_type = 'node'
+    AND dgc.gid IN (" . implode(', ', array_keys($groups)) . ")
+    )
+    UNION
+    (
+    SELECT 'comment' AS nc, c.cid AS id, c.created
+    FROM {comment} c
+    JOIN {discussion_group_content} dgc ON dgc.eid = `nid`
+    WHERE dgc.entity_type = 'node'
+    AND dgc.gid IN (" . implode(', ', array_keys($groups)) . ")
+    )
+    ORDER BY created DESC ";
+
+    if ($offset == NULL && $limit == NULL) {
+      $result = db_query($query);
+      $results = $result->fetchAll();
+
+      return count($results);
+    }
+    else {
+      $query .= " LIMIT " . $offset . ", " . $limit;
+
+      $result = db_query($query);
+      $results = $result->fetchAll();
+
+      foreach ($results as $r) {
+        $func = $r->nc . '_load';
+        $i = $func($r->id);
+        $i->__nc = $r->nc;
+
+        $items[] = $i;
+      }
+    }
+
+
+  }
+
+  return $items;
+}
+
 /**
  * Implements hook_theme().
  */
 function discussion_theme($existing, $type, $theme, $path) {
   return array(
+    'user_info' => array(
+      'template' => 'templates/user-info',
+      'render element' => 'element',
+    ),
     'discussion_page_wrapper' => array(
       'template' => 'templates/discussion-page-wrapper',
       'render element' => 'element',
@@ -247,24 +320,18 @@ function discussion_theme($existing, $type, $theme, $path) {
       'template' => 'templates/mini-calendar',
       'render element' => 'element',
     ),
-
+    'latest_feed_pager' => array(
+      'template' => 'templates/latest-feed-pager',
+      'variables' => array(
+        'page' => 0,
+        'max' => 1,
+      ),
+    ),
   );
 }
 
 function template_preprocess_mini_calendar() {
   drupal_add_js(drupal_get_path('module', 'discussion') . '/js/mini-calendar.js');
-}
-
-function _build_user_block() {
-  global $user;
-  $user = user_load($user->uid);
-
-  $str = theme('user_picture', array('account' => $user, 'style_name' => 'user_img_normal'));
-
-  //$str = '<div class="user-img">' . theme('image_style', array('style_name' => 'user_img_normal', 'path' => $user->picture->uri)) . '</div>';
-  $str .= '<h3>' . $user->name . '</h3>';
-
-  return array('#markup' => $str);
 }
 
 function current_events_callback() {
@@ -332,6 +399,8 @@ function current_events_callback() {
 
 /**
  * Implements hook_preprocess_HOOK().
+ *
+ * TODO: should this be moved to the theme?
  */
 function discussion_preprocess_page(&$variables) {
   global $user;
@@ -339,33 +408,38 @@ function discussion_preprocess_page(&$variables) {
   $sidebar = NULL;
 
   // add user block, always
-  $sidebar['user'] = _build_user_block();
+  $sidebar['user'] = array(
+    '#theme' => 'user_info',
+    '#account' => $user,
+  );
 
   $dashboard = ($_GET['q'] == 'dashboard')? TRUE : FALSE;
   $q = $_GET['q'];
   $q = explode('/', $q);
 
-  if ($dashboard) {
-    $groups = Group::getCurrentUserGroups();
-    // Set up groups block.
-    $sidebar['groups'] = array(
-      '#theme' => 'item_list',
-      '#items' => array(),
-      '#title' => t('Groups'),
-    );
+  // Add groups block
+  $groups = Group::getCurrentUserGroups();
+  // Set up groups block.
+  $sidebar['groups'] = array(
+    '#theme' => 'item_list',
+    '#items' => array(),
+    '#title' => t('Groups'),
+  );
 
-    $groups = Group::getCurrentUserGroups();
-    foreach ($groups as $gid => $group) {
-      $str = $group->label();
+  $groups = Group::getCurrentUserGroups();
+  foreach ($groups as $gid => $group) {
+    $str = $group->label();
 
-      if ($group->isOwner($user)) {
-        $str .= ' (Owner)';
-      }
-
-      $sidebar['groups']['#items'][] = array(
-        'data' => l($str, 'group/' . $group->gid),
-      );
+    if ($group->isOwner($user)) {
+      $str .= ' (Owner)';
     }
+
+    $sidebar['groups']['#items'][] = array(
+      'data' => l($str, 'group/' . $group->gid),
+    );
+  }
+
+  if ($dashboard) {
 
     // Setup mini calendar
     $sidebar['mini_calendar'] = array(
@@ -379,6 +453,38 @@ function discussion_preprocess_page(&$variables) {
   elseif($q[0] == 'group') {
     $group = menu_get_object('group', 1);
 
+
+    $sidebar['group_content'] = array(
+      '#theme' => 'item_list',
+      '#items' => array(
+        'discussions' => l('Discussions', 'group/' . $group->gid . '/discussions'),
+        'events' => l('Events', 'group/' . $group->gid . '/events'),
+        'galleries' => l('Galleries', 'group/' . $group->gid . '/galleries'),
+        'images' => l('Images', 'group/' . $group->gid . '/images'),
+      ),
+      '#title' => t('Content'),
+    );
+
+
+
+    if ($group->isOwner($user)) {
+      $sidebar['group_manage'] = array(
+        '#theme' => 'item_list',
+        '#items' => array(
+          'discussions' => l('Membership', 'group/' . $group->gid . '/memberships'),
+        ),
+        '#title' => t('Group Administration'),
+      );
+    }
+
+
+
+
+
+
+
+
+
     // Setup mini calendar
     $sidebar['mini_calendar'] = array(
       '#theme' => 'mini_calendar',
@@ -390,6 +496,55 @@ function discussion_preprocess_page(&$variables) {
 
   if (!is_null($sidebar) && !(isset($q[2]) && $q[2] == 'memberships')) {
     $variables['page']['sidebar'] = $sidebar;
+  }
+
+}
+
+/**
+ * Implements hook_preprocess_HOOK().
+ */
+function discussion_preprocess_node(&$variables) {
+  if ($variables['elements']['#view_mode'] == 'latest_feed') {
+    $variables['theme_hook_suggestions'][] = 'node__latest_feed';
+    $account = user_load($variables['uid']);
+    $variables['user_picture'] = theme('user_picture', array('account' => $account, 'style_name' => 'user_img_normal'));
+  }
+}
+
+/**
+ * Implements hook_preprocess_HOOK().
+ */
+function discussion_preprocess_comment(&$variables) {
+  if ($variables['elements']['#view_mode'] == 'latest_feed') {
+    $variables['theme_hook_suggestions'][] = 'comment__latest_feed';
+    $variables['created'] = strtotime($variables['created']);
+  }
+}
+
+/**
+ * Implements hook_theme_registry_alter().
+ */
+function discussion_theme_registry_alter(&$theme_registry) {
+
+  $theme_registry_copy = $theme_registry;
+  _theme_process_registry($theme_registry_copy, 'phptemplate', 'theme_engine', 'discussion', DISCUSSION_PATH);
+  $theme_registry += array_diff_key($theme_registry_copy, $theme_registry);
+  // A list of templates the module will provide templates for
+  $hooks = array('node__latest_feed', 'comment__latest_feed');
+  foreach ($hooks as $h) {
+    // Add the key 'theme paths' if it doesn't exist in this theme's registry
+    if (!isset($theme_registry[$h]['theme paths'])) {
+      $theme_registry[$h]['theme paths'] = array();
+    }
+    //Shift this module's directory to the top of the theme path list
+    if(is_array($theme_registry[$h]['theme paths'])) {
+      $first_element = array_shift($theme_registry[$h]['theme paths']);
+      if ($first_element) {
+        array_unshift($theme_registry[$h]['theme paths'], $first_element, DISCUSSION_PATH);
+      } else {
+        array_unshift($theme_registry[$h]['theme paths'], DISCUSSION_PATH);
+      }
+    }
   }
 
 }

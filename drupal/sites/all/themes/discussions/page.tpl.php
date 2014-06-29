@@ -10,10 +10,14 @@
     </div>
   </div>
 
+  <div id="breadcrumb-container">
+    <div class="container">
+      <?php print $breadcrumb; ?>
+    </div>
+  </div>
+
   <div id="page">
     <div class="container">
-
-      <?php print $breadcrumb; ?>
 
       <?php print render($primary_local_tasks); ?>
       <?php if ($secondary_local_tasks): ?>
@@ -39,10 +43,10 @@
       <?php //print render($page['content']); ?>
       <div class="row">
         <?php if (isset($page['sidebar'])) : ?>
-        <div class="col-md-4 sidebar">
+        <div class="col-md-3 sidebar" id="sidebar">
           <?php  print render($page['sidebar']); ?>
         </div>
-        <div class="col-md-10">
+        <div class="col-md-11 main-content">
           <?php
             print render($page['content']);
           ?>

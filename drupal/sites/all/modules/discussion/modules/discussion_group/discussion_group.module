@@ -41,7 +41,7 @@ function discussion_group_entity_info() {
       'group' => array(
         'label' => t('Group'),
         'admin' => array(
-          'path' => 'admin/group/manage',
+          'path' => 'admin/group/group/manage',
           'access arguments' => array('administer groups'),
         ),
       ),

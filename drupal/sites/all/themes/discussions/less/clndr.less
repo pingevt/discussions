@@ -1,24 +1,20 @@
-@red: #ff5a45;
-@blue: #71bbd2;
-@dark-blue: #3883a3;
-@dark-green:  #69a776;
-@light-green: #97ce7f;
-@dark-gray: #414141;
-@light-gray: #cccccc;
-@lightest-gray: #ebebeb;
-@yellow: #ddca9a;
-
-
 .mini-calendar {
   font-size: 11px;
 
+  .clndr-prev,
+  .clndr-next {
+    cursor: pointer;
+  }
+
   .day {
+    padding: 0;
+
     &.past {
       color: @light-gray;
     }
 
     &.event {
-      color: @red;
+      color: @base_red;
     }
 
     &.today {
@@ -37,4 +33,6 @@
       }
     }
   }
+
+
 }
