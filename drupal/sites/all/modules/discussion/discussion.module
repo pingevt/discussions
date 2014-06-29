@@ -2,6 +2,8 @@
 
 define('DISCUSSION_PATH', drupal_get_path('module', 'discussion'));
 
+include_once 'discussion.features.inc';
+
 /**
  * Implements hook_menu().
  */

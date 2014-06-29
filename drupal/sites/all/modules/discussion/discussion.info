@@ -3,10 +3,51 @@ description = Backbone for Discussion site. Developed by Little Urchin Workshop.
 package = LUW
 core = 7.x
 
-dependencies[] = discussion_group
-
 version = "7.x-0.1"
-
 
 files[] = templates/node--latest-feed.tpl.php
 files[] = templates/comment--latest-feed.tpl.php
+
+dependencies[] = date
+dependencies[] = discussion_group
+dependencies[] = entityreference
+dependencies[] = features
+dependencies[] = image
+dependencies[] = text
+features[features_api][] = api:2
+features[field_base][] = body
+features[field_base][] = comment_body
+features[field_base][] = field_dates
+features[field_base][] = field_description
+features[field_base][] = field_event_location
+features[field_base][] = field_group_banner_img
+features[field_base][] = field_group_icon_img
+features[field_base][] = field_image
+features[field_base][] = field_image_nodes
+features[field_base][] = field_owner
+features[field_instance][] = comment-comment_node_discussion-comment_body
+features[field_instance][] = comment-comment_node_event-comment_body
+features[field_instance][] = comment-comment_node_gallery-comment_body
+features[field_instance][] = comment-comment_node_image-comment_body
+features[field_instance][] = comment-comment_node_page-comment_body
+features[field_instance][] = group-group-field_description
+features[field_instance][] = group-group-field_group_banner_img
+features[field_instance][] = group-group-field_group_icon_img
+features[field_instance][] = group-group-field_owner
+features[field_instance][] = node-discussion-body
+features[field_instance][] = node-event-body
+features[field_instance][] = node-event-field_dates
+features[field_instance][] = node-event-field_event_location
+features[field_instance][] = node-gallery-body
+features[field_instance][] = node-gallery-field_image_nodes
+features[field_instance][] = node-image-field_image
+features[image][] = gallery_full_size
+features[image][] = gallery_thumbnail
+features[image][] = group_banner_image
+features[image][] = group_icon
+features[image][] = user_img_normal
+features[image][] = user_img_small
+features[node][] = discussion
+features[node][] = event
+features[node][] = gallery
+features[node][] = image
