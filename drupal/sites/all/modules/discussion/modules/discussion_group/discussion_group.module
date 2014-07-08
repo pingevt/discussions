@@ -363,6 +363,8 @@ function luw_node_form_submit(&$form, &$form_state) {
 
     $gc->save();
   }
+
+  $form_state['redirect'] = 'group/' . $group_id . '/' . $form_state['complete form']['#node']->type . '/' . $form_state['values']['nid'];
 }
 
 
@@ -391,7 +393,7 @@ function discussion_group_node_access($node, $op, $account) {
 }
 
 /**
- * Implements hook_node_access().
+ * Implements hook_file_entity_access().
  */
 function discussion_group_file_entity_access($op, $file, $account) {
   // Deny all direct access to files.

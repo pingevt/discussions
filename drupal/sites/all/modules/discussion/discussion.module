@@ -39,6 +39,28 @@ function discussion_menu() {
     'type' => MENU_SUGGESTED_ITEM,
   );
 
+  // Content lists
+/*
+  $items['group/%group/memberships'] = array(
+    'title' => '',
+    'page callback' => 'luw_group_membership_page_view',
+    'page arguments' => array(1),
+    'access arguments' => array('access content'),
+    'type' => MENU_SUGGESTED_ITEM,
+  );
+*/
+
+  // Individual Content Pages
+  $items['group/%group/discussion/%node'] = array(
+    'title' => '',
+    'page callback' => 'group_discussion_page_view',
+    'page arguments' => array(1, 2),
+    'access callback' => 'group_content_access',
+    'access arguments' => array(1, 2, 'view'),
+    'type' => MENU_SUGGESTED_ITEM,
+  );
+
+
 
   // Callbackcs for calendars
   $items['api/current-events'] = array(
@@ -58,6 +80,44 @@ function discussion_menu() {
   );
 
   return $items;
+}
+
+/**
+ * Implements hook_menu_alter().
+ */
+function discussion_menu_alter(&$items) {
+
+  dpm($items);
+  unset($items['node']);
+  unset($items['node/%node']);
+}
+
+function group_content_access($group, $node, $op) {
+  global $user;
+
+  // first check $node is in $group.
+  if (!$group->isNodeInGroup($node)) {
+    return FALSE;
+  }
+
+  // Check user is in $group.
+
+  // first check $node is in $group.
+  if (!$group->isUserMember($user)) {
+    return FALSE;
+  }
+
+  // Check user has $op privalege in group.
+  // Owner - can do anything
+  // Editor - can do anything with content, nothing to group
+  // Memebr - can view anything but only edit own content
+  switch ($op) {
+  case 'view':
+    break;
+  }
+
+  //
+  return FALSE;
 }
 
 function luw_login_page_view() {
@@ -441,6 +501,26 @@ function discussion_preprocess_page(&$variables) {
     );
   }
 
+  // Setup add content block.
+  $sidebar['content'] = array(
+    '#theme' => 'item_list',
+    '#items' => array(
+      'discussion' => array(
+        'data' => l('Start New Discussion', 'node/add/discussion'),
+      ),
+      'event' => array(
+        'data' => l('Create New Event', 'node/add/event'),
+      ),
+      'image' => array(
+        'data' => l('Upload New Image', 'node/add/image'),
+      ),
+      'gallery' => array(
+        'data' => l('Start New Gallery', 'node/add/gallery'),
+      ),
+    ),
+    '#title' => t('Add content'),
+  );
+
   if ($dashboard) {
 
     // Setup mini calendar
@@ -478,13 +558,6 @@ function discussion_preprocess_page(&$variables) {
         '#title' => t('Group Administration'),
       );
     }
-
-
-
-
-
-
-
 
 
     // Setup mini calendar

@@ -55,26 +55,50 @@ class Group extends Entity {
   /**
    *  provides members of a group.
    */
-  public function getGroupMembers() {
-    $group_memberships = array();
+  public function getGroupMembers($refresh = FALSE) {
+    static $group_memberships = array();
 
-    $query = new EntityFieldQuery();
-    $query->entityCondition('entity_type', 'group_membership');
-    $query->propertyCondition('gid', $this->gid);
-    $query->propertyOrderBy('grid', 'DESC');
+    if (empty($group_memberships) || $refresh) {
+      $query = new EntityFieldQuery();
+      $query->entityCondition('entity_type', 'group_membership');
+      $query->propertyCondition('gid', $this->gid);
+      $query->propertyOrderBy('grid', 'DESC');
 
-    $result = $query->execute();
-    $group_memberships = array();
-    if (isset($result['group_membership'])) {
-      $group_memberships = entity_load('group_membership', array_keys($result['group_membership']));
+      $result = $query->execute();
+      $group_memberships = array();
+      if (isset($result['group_membership'])) {
+        $group_memberships = entity_load('group_membership', array_keys($result['group_membership']));
 
 
-      foreach ($group_memberships as &$gm) {
-        $gm->_user = user_load($gm->uid);
+        foreach ($group_memberships as &$gm) {
+          $gm->_user = user_load($gm->uid);
+        }
       }
     }
 
     return $group_memberships;
+  }
+
+  public function getGroupMemebrship($user) {
+    $query = new EntityFieldQuery();
+    $query->entityCondition('entity_type', 'group_membership');
+    $query->propertyCondition('gid', $this->gid);
+    $query->propertyCondition('uid', $user->uid);
+
+    if (isset($result['group_membership'])) {
+      $group_memberships = entity_load('group_membership', array_keys($result['group_membership']));
+
+      if (count($group_memberships) > 1) {
+        drupal_set_message('There a more than one group_memberships for this group/user', 'error', TRUE);
+        watchdog('discussion_group', 'There a more than one group_memberships for this group/user: Group: @group_id User: @user_id', array('@group_id' => $this->gid, '@user_id' => $user->uid), WATCHDOG_ERROR);
+      }
+
+      return current($group_memberships);
+    }
+    else {
+      return FALSE;
+    }
+
   }
 
   /**
