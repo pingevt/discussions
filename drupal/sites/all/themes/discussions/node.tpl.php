@@ -79,45 +79,22 @@
  *
  * @ingroup themeable
  */
-
-$headers = array(
-  'discussion' => $name . ' started a new discussion.',
-  'event' => $name . ' created a new event.',
-  'gallery' => $name . ' created a new gallery.',
-  'image' => $name . ' uploaded a new image.',
-);
-
-//$node_url = '';
-
-$group_info = GroupContent::getNodeGroupOwnersByUser($node);
-
-$current_group = discussions_get_current_group();
-if ($current_group != NULL) {
-  $node_url = 'group/' . $current_group->gid . '/' . $type . '/' . $node->nid;
-}
-else {
-  $node_url = 'group/' . current($group_info)->gid . '/' . $type . '/' . $node->nid;
-}
-
-
 ?>
-<article id="node-<?php print $node->nid; ?>" class="<?php print $classes; ?> clearfix"<?php print $attributes; ?>>
+<div id="node-<?php print $node->nid; ?>" class="<?php print $classes; ?> clearfix"<?php print $attributes; ?>>
 
-  <header>
-    <?php print $user_picture ?>
-
-    <h2><?php print $headers[$type]; ?></h2>
-    <p><?php print format_interval((time() - $created)); ?></p>
-
-  </header>
-
-  <hr />
+  <?php print $user_picture; ?>
 
   <?php print render($title_prefix); ?>
   <?php if (!$page): ?>
-    <h2<?php print $title_attributes; ?>><a href="/<?php print $node_url; ?>"><?php print $title; ?></a></h2>
+    <h2<?php print $title_attributes; ?>><a href="<?php print $node_url; ?>"><?php print $title; ?></a></h2>
   <?php endif; ?>
   <?php print render($title_suffix); ?>
+
+  <?php if ($display_submitted): ?>
+    <div class="submitted">
+      <?php print $submitted; ?>
+    </div>
+  <?php endif; ?>
 
   <div class="content"<?php print $content_attributes; ?>>
     <?php
@@ -128,22 +105,8 @@ else {
     ?>
   </div>
 
-  <hr />
-  <?php
-    $group_list = array(
-      '#theme' => 'item_list',
-      '#items' => array(),
-      '#title' => t('Groups'),
-      '#prefix' => '<div class="node-groups-list">',
-      '#suffix' => '</div>',
-    );
+  <?php print render($content['links']); ?>
 
-    foreach ($group_info as $group) {
-      $uri = entity_uri('group', $group);
-      $group_list['#items'][] = l($group->label(), $uri['path'], $uri['options']);
-    }
+  <?php print render($content['comments']); ?>
 
-    print render($group_list);
-  ?>
-
-</article>
+</div>

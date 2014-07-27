@@ -54,9 +54,9 @@ function discussion_menu() {
   $items['group/%group/discussion/%node'] = array(
     'title' => '',
     'page callback' => 'group_discussion_page_view',
-    'page arguments' => array(1, 2),
+    'page arguments' => array(1, 3),
     'access callback' => 'group_content_access',
-    'access arguments' => array(1, 2, 'view'),
+    'access arguments' => array(1, 3, 'view'),
     'type' => MENU_SUGGESTED_ITEM,
   );
 
@@ -79,6 +79,59 @@ function discussion_menu() {
     'type' => MENU_CALLBACK,
   );
 
+
+
+  // Super admin pages
+  //admin/structure/discussion/group-membership/membership/manage
+  $items['admin/groups'] = array(
+    'title' => 'Discussion admin',
+    'description' => 'Discussion admin',
+    'page callback' => 'group_admin',
+    'access callback' => TRUE,
+    'file path' => 'modules/system',
+    'file' => 'system.admin.inc',
+  );
+
+  /*$items['admin/groups/group-membership'] = array(
+    'title' => 'Group membership',
+    'description' => 'Group membership entity admin',
+    'page callback' => 'system_admin_menu_block_page',
+    'access callback' => TRUE,
+    'file path' => 'modules/system',
+    'file' => 'system.admin.inc',
+    'weight' => 2,
+  );*/
+
+  $items['admin/groups/group-membership/manage/%group_membership_bundle'] = array(
+    'title' => 'Group membership manage',
+    'description' => 'Group membership entity admin',
+    'page callback' => 'system_admin_menu_block_page',
+    'access callback' => TRUE,
+    'file path' => 'modules/system',
+    'file' => 'system.admin.inc',
+    'weight' => 2,
+  );
+
+  /*$items['admin/groups/group-content'] = array(
+    'title' => 'Group content',
+    'description' => 'Group content entity admin',
+    'page callback' => 'system_admin_menu_block_page',
+    'access callback' => TRUE,
+    'file path' => 'modules/system',
+    'file' => 'system.admin.inc',
+    'weight' => 3,
+  );*/
+
+  $items['admin/groups/group-content/manage/%group_content_bundle'] = array(
+    'title' => 'Group content manage',
+    'description' => 'Group content entity admin',
+    'page callback' => 'system_admin_menu_block_page',
+    'access callback' => TRUE,
+    'file path' => 'modules/system',
+    'file' => 'system.admin.inc',
+    'weight' => 2,
+  );
+
   return $items;
 }
 
@@ -87,9 +140,51 @@ function discussion_menu() {
  */
 function discussion_menu_alter(&$items) {
 
-  dpm($items);
   unset($items['node']);
   unset($items['node/%node']);
+}
+
+function group_admin() {
+  $item = menu_get_item();
+  $content = system_admin_menu_block($item);
+  $build = array(
+    'admin_menu_block' => array(
+      '#theme' => 'admin_block_content',
+      '#content' => $content,
+    ),
+    'table' => array(),
+  );
+
+  $header = array('Name', 'Entity',  array('data' => t('Operations'), 'colspan' => '3'));
+  $rows = array();
+
+  foreach (array('group_membership', 'group_content') as $entity_type) {
+    $entity_info = entity_get_info($entity_type);
+
+    foreach($entity_info['bundles'] as $bundle_type => $bundle_info) {
+      $row = array();
+      $row[] = $entity_type;
+      $row[] = $bundle_type;
+
+      $row[] = array('data' => l(t('edit'), 'admin/groups/group-membership/manage/' . $bundle_type));
+      $row[] = array('data' => l(t('manage fields'), 'admin/groups/group-membership/manage/' . $bundle_type . '/fields'));
+      $row[] = array('data' => l(t('manage display'), 'admin/groups/group-membership/manage/' . $bundle_type . '/display'));
+
+      $rows[] = $row;
+    }
+
+  }
+
+
+
+  $build['table'] = array(
+    '#theme' => 'table',
+    '#header' => $header,
+    '#rows' => $rows,
+    '#empty' => t(''),
+  );
+
+  return $build;
 }
 
 function group_content_access($group, $node, $op) {
@@ -101,9 +196,7 @@ function group_content_access($group, $node, $op) {
   }
 
   // Check user is in $group.
-
-  // first check $node is in $group.
-  if (!$group->isUserMember($user)) {
+  if (!$group->isUserMember($user->uid)) {
     return FALSE;
   }
 
@@ -111,8 +204,16 @@ function group_content_access($group, $node, $op) {
   // Owner - can do anything
   // Editor - can do anything with content, nothing to group
   // Memebr - can view anything but only edit own content
+  $membership = $group->getGroupMemebrship($user);
   switch ($op) {
   case 'view':
+    return TRUE;
+    break;
+  case 'edit':
+
+    break;
+  case 'delete':
+
     break;
   }
 
@@ -132,6 +233,10 @@ function luw_dashboard_page_view() {
   drupal_set_title('Dashboard');
 
   $groups = Group::getCurrentUserGroups();
+
+  if (count($groups) == 1) {
+    drupal_goto('group/' . current($groups)->gid);
+  }
 
   // Add main content
   $build = array(
@@ -200,6 +305,7 @@ function _sort_entities_by_created($a, $b) {
 }
 
 function luw_group_dashboard_page_view($group) {
+
   drupal_set_title($group->label());
 
   // Build Breadcrumbs
@@ -297,6 +403,58 @@ function luw_group_membership_page_view($group) {
     );
   }
 
+  return $build;
+}
+
+function group_discussion_page_view($group, $node) {
+  global $user;
+  module_load_include('inc', 'node', 'node.pages');
+
+  $build = array();
+  $view_mode = 'full';
+  $langcode = NULL;
+
+  // Populate $node->content with a render() array.
+  node_build_content($node, $view_mode, $langcode);
+
+  $build['node'] = $node->content;
+  // We don't need duplicate rendering info in node->content.
+  unset($node->content);
+
+  $build['node'] += array(
+    '#theme' => 'node',
+    '#node' => $node,
+    '#view_mode' => $view_mode,
+    '#language' => $langcode,
+  );
+
+  // Allow modules to modify the structured node.
+  $type = 'node';
+  drupal_alter(array('node_view', 'entity_view'), $build['node'], $type);
+
+  // Add in reply form
+  $reply_node = new StdClass();
+  $reply_node->uid = $user->uid;
+  $reply_node->name = isset($user->name) ? $user->name : '';
+  $reply_node->type = 'discussion';
+  $reply_node->language = LANGUAGE_NONE;
+  $reply_node->title = 'Reply to ' . $node->title;
+  $reply_node->field_reply_to[LANGUAGE_NONE][0]['target_id'] = $node->nid;
+
+  $reply_form = drupal_get_form('discussion_node_form', $reply_node);
+  $reply_form['title']['#access'] = FALSE;
+  $reply_form['field_reply_to']['#access'] = FALSE;
+  $reply_form['menu']['#access'] = FALSE;
+  $reply_form['path']['#access'] = FALSE;
+  $reply_form['additional_settings']['#access'] = FALSE;
+  $reply_form['revision_information']['#access'] = FALSE;
+
+  $reply_form['group_assignment']['#access'] = FALSE;
+  $reply_form['group_assignment']['groups']['#access'] = FALSE;
+
+
+  $build['reply'] = $reply_form;
+dpm($reply_form);
   return $build;
 }
 
@@ -533,40 +691,38 @@ function discussion_preprocess_page(&$variables) {
 
   }
   elseif($q[0] == 'group') {
-    $group = menu_get_object('group', 1);
+    $group = discussions_get_current_group();
 
-
-    $sidebar['group_content'] = array(
-      '#theme' => 'item_list',
-      '#items' => array(
-        'discussions' => l('Discussions', 'group/' . $group->gid . '/discussions'),
-        'events' => l('Events', 'group/' . $group->gid . '/events'),
-        'galleries' => l('Galleries', 'group/' . $group->gid . '/galleries'),
-        'images' => l('Images', 'group/' . $group->gid . '/images'),
-      ),
-      '#title' => t('Content'),
-    );
-
-
-
-    if ($group->isOwner($user)) {
-      $sidebar['group_manage'] = array(
+    if (!empty($group)) {
+      $sidebar['group_content'] = array(
         '#theme' => 'item_list',
         '#items' => array(
-          'discussions' => l('Membership', 'group/' . $group->gid . '/memberships'),
+          'discussions' => l('Discussions', 'group/' . $group->gid . '/discussions'),
+          'events' => l('Events', 'group/' . $group->gid . '/events'),
+          'galleries' => l('Galleries', 'group/' . $group->gid . '/galleries'),
+          'images' => l('Images', 'group/' . $group->gid . '/images'),
         ),
-        '#title' => t('Group Administration'),
+        '#title' => t('Content'),
+      );
+
+      if ($group->isOwner($user)) {
+        $sidebar['group_manage'] = array(
+          '#theme' => 'item_list',
+          '#items' => array(
+            'discussions' => l('Membership', 'group/' . $group->gid . '/memberships'),
+          ),
+          '#title' => t('Group Administration'),
+        );
+      }
+
+      // Setup mini calendar
+      $sidebar['mini_calendar'] = array(
+        '#theme' => 'mini_calendar',
+        '#attributes' => array(
+          'data-href' => '/api/group-events/' . $group->gid,
+        ),
       );
     }
-
-
-    // Setup mini calendar
-    $sidebar['mini_calendar'] = array(
-      '#theme' => 'mini_calendar',
-      '#attributes' => array(
-        'data-href' => '/api/group-events/' . $group->gid,
-      ),
-    );
   }
 
   if (!is_null($sidebar) && !(isset($q[2]) && $q[2] == 'memberships')) {
@@ -622,4 +778,11 @@ function discussion_theme_registry_alter(&$theme_registry) {
     }
   }
 
+}
+
+function discussions_get_current_group() {
+  if ($group = menu_get_object('group', 1)) {
+    return $group;
+  }
+  return NULL;
 }

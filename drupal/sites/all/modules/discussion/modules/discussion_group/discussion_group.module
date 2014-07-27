@@ -41,7 +41,14 @@ function discussion_group_entity_info() {
       'group' => array(
         'label' => t('Group'),
         'admin' => array(
-          'path' => 'admin/group/group/manage',
+          'path' => 'admin/groups/group/group/manage',
+          'access arguments' => array('administer groups'),
+        ),
+      ),
+      'free_group' => array(
+        'label' => t('Free Group'),
+        'admin' => array(
+          'path' => 'admin/groups/group/free-group/manage',
           'access arguments' => array('administer groups'),
         ),
       ),
@@ -51,7 +58,7 @@ function discussion_group_entity_info() {
     ),
     'admin ui' => array(
       'controller class' => 'GroupUIController',
-      'path' => 'admin/group',
+      'path' => 'admin/groups/group',
       'file' => 'includes/group.inc',
     ),
     'module' => 'discussion_group',
@@ -76,7 +83,9 @@ function discussion_group_entity_info() {
       'membership' => array(
         'label' => t('Membership'),
         'admin' => array(
-          'path' => 'admin/group-membership/membership/manage',
+          'path' => 'admin/groups/group-membership/manage/%group_membership_bundle',
+          'real path' => 'admin/groups/group-membership/manage/membership',
+          'bundle argument' => 3,
           'access arguments' => array('administer groups'),
         ),
       ),
@@ -105,7 +114,9 @@ function discussion_group_entity_info() {
       'content' => array(
         'label' => t('Content'),
         'admin' => array(
-          'path' => 'admin/group-content/content/manage',
+          'path' => 'admin/groups/group-content/manage/%group_content_bundle',
+          'real path' => 'admin/groups/group-content/manage/content',
+          'bundle argument' => 3,
           'access arguments' => array('administer groups'),
         ),
       ),
@@ -118,6 +129,14 @@ function discussion_group_entity_info() {
   );
 
   return $items;
+}
+
+function group_membership_bundle_load($name) {
+  return $name;
+}
+
+function group_content_bundle_load($name) {
+  return $name;
 }
 
 /**
@@ -201,12 +220,12 @@ function discussion_group_entity_info_alter(&$entity_info) {
     'label' => 'Latest Feed',
     'custom settings' => FALSE,
   );
-
+/*
   $entity_info['comment']['view modes']['latest_feed'] = array(
     'label' => 'Latest Feed',
     'custom settings' => FALSE,
   );
-
+*/
 }
 
 /**
@@ -225,6 +244,7 @@ function discussion_group_entity_presave($entity, $type) {
       $entity->updated = time();
     }
   }
+
 }
 
 /**
@@ -244,7 +264,8 @@ function group_load($gid) {
 }
 
 function group_uri($group) {
-  return array('path' => 'admin/group/' . $group->gid);
+  //return array('path' => 'admin/group/' . $group->gid);
+  return array('path' => 'group/' . $group->gid);
 }
 
 function group_entity_access($group_id) {
@@ -276,8 +297,9 @@ function group_membership_entity_access() {
  */
 function discussion_group_form_alter(&$form, &$form_state, $form_id) {
 
-  if (strpos($form_id, '_node_form') !== FALSE && in_array($form['#bundle'], array('gallery', 'image', 'event', 'discussion') )) {
+  if (strpos($form_id, '_node_form') !== FALSE && in_array($form['#bundle'], array('gallery', 'image', 'event', 'discussion'))) {
     $groups = Group::getCurrentUserGroups();
+    $required = TRUE;
 
     $group_options = array();
     foreach ($groups as $group_id => $group) {
@@ -302,6 +324,13 @@ function discussion_group_form_alter(&$form, &$form_state, $form_id) {
         }
       }
     }
+    elseif (isset($form['#node']->field_reply_to[LANGUAGE_NONE][0]['target_id'])) {
+      $parent = node_load($form['#node']->field_reply_to[LANGUAGE_NONE][0]['target_id']);
+      $groups = GroupContent::getNodeGroupOwners($parent);
+      $group_options_value = $group_options_default = array_keys($groups);
+
+      $required = FALSE;
+    }
 
     $form['group_assignment'] = array(
       '#type' => 'fieldset',
@@ -315,17 +344,18 @@ function discussion_group_form_alter(&$form, &$form_state, $form_id) {
       '#title' => t('Publish to'),
       '#options' => $group_options,
       '#multiple' => TRUE,
-      '#required' => TRUE,
+      '#required' => $required,
       '#default_value' => $group_options_default,
+      '#value' => $group_options_value,
     );
 
-    $form['actions']['submit']['#submit'][] = 'luw_node_form_submit';
+    $form['actions']['submit']['#submit'][] = 'discussion_group_node_form_submit';
 
   }
 
 }
 
-function luw_node_form_submit(&$form, &$form_state) {
+function discussion_group_node_form_submit(&$form, &$form_state) {
 
   $group_ids = $form_state['values']['group_assignment']['groups'];
 

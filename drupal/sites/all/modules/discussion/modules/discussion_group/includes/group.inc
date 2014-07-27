@@ -84,6 +84,7 @@ class Group extends Entity {
     $query->entityCondition('entity_type', 'group_membership');
     $query->propertyCondition('gid', $this->gid);
     $query->propertyCondition('uid', $user->uid);
+    $result = $query->execute();
 
     if (isset($result['group_membership'])) {
       $group_memberships = entity_load('group_membership', array_keys($result['group_membership']));
