@@ -220,6 +220,10 @@ function discussion_group_entity_info_alter(&$entity_info) {
     'label' => 'Latest Feed',
     'custom settings' => FALSE,
   );
+  $entity_info['node']['view modes']['discussion_replies'] = array(
+    'label' => 'Discussion Replies',
+    'custom settings' => FALSE,
+  );
 /*
   $entity_info['comment']['view modes']['latest_feed'] = array(
     'label' => 'Latest Feed',
@@ -308,6 +312,7 @@ function discussion_group_form_alter(&$form, &$form_state, $form_id) {
 
     // Check for existing groups.
     $group_options_default = array();
+    $group_options_value = array();
     if (isset($form['#node']->nid)) {
       $query = new EntityFieldQuery();
       $query->entityCondition('entity_type', 'group_content');
@@ -332,6 +337,10 @@ function discussion_group_form_alter(&$form, &$form_state, $form_id) {
       $required = FALSE;
     }
 
+    if ($current_group = discussion_get_current_group()) {
+      $group_options_default[] = $current_group->gid;
+    }
+
     $form['group_assignment'] = array(
       '#type' => 'fieldset',
       '#title' => t('Group Assignment'),
@@ -346,8 +355,12 @@ function discussion_group_form_alter(&$form, &$form_state, $form_id) {
       '#multiple' => TRUE,
       '#required' => $required,
       '#default_value' => $group_options_default,
-      '#value' => $group_options_value,
+      //'#value' => $group_options_value,
     );
+
+    if (!empty($group_options_value)) {
+      $form['group_assignment']['groups']['#value'] = $group_options_value;
+    }
 
     $form['actions']['submit']['#submit'][] = 'discussion_group_node_form_submit';
 
@@ -366,6 +379,7 @@ function discussion_group_node_form_submit(&$form, &$form_state) {
   $query->propertyCondition('eid', $form_state['values']['nid']);
 
   $results = $query->execute();
+dpm($form_state['values']);
   if (isset($results['group_content'])) {
     $group_contents = entity_load('group_content', array_keys($results['group_content']));
 
@@ -394,7 +408,7 @@ function discussion_group_node_form_submit(&$form, &$form_state) {
     $gc->save();
   }
 
-  $form_state['redirect'] = 'group/' . $group_id . '/' . $form_state['complete form']['#node']->type . '/' . $form_state['values']['nid'];
+  //$form_state['redirect'] = 'group/' . $group_id . '/' . $form_state['complete form']['#node']->type . '/' . $form_state['values']['nid'];
 }
 
 

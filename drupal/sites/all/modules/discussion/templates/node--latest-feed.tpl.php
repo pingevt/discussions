@@ -91,7 +91,7 @@ $headers = array(
 
 $group_info = GroupContent::getNodeGroupOwnersByUser($node);
 
-$current_group = discussions_get_current_group();
+$current_group = discussion_get_current_group();
 if ($current_group != NULL) {
   $node_url = 'group/' . $current_group->gid . '/' . $type . '/' . $node->nid;
 }

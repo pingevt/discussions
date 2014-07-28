@@ -35,7 +35,9 @@ class Group extends Entity {
 
     $query = new EntityFieldQuery();
     $query->entityCondition('entity_type', 'group_membership');
-    $query->propertyCondition('uid', $user->uid);
+    if ($user->uid != 1) {
+      $query->propertyCondition('uid', $user->uid);
+    }
 
     $result = $query->execute();
 
@@ -136,6 +138,9 @@ class Group extends Entity {
   }
 
   public function isNodeInGroup($node) {
+
+    if (!isset($node->nid)) return FALSE;
+
     $query = new EntityFieldQuery();
     $query->entityCondition('entity_type', 'group_content');
     $query->propertyCondition('entity_type', 'node');

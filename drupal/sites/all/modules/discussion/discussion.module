@@ -51,6 +51,15 @@ function discussion_menu() {
 */
 
   // Individual Content Pages
+  $items['group/%group/discussion/add'] = array(
+    'title' => '',
+    'page callback' => 'group_discussion_add',
+    'page arguments' => array(1),
+    'access callback' => 'group_content_access',
+    'access arguments' => array(1, NULL, 'add'),
+    'type' => MENU_SUGGESTED_ITEM,
+  );
+
   $items['group/%group/discussion/%node'] = array(
     'title' => '',
     'page callback' => 'group_discussion_page_view',
@@ -191,7 +200,7 @@ function group_content_access($group, $node, $op) {
   global $user;
 
   // first check $node is in $group.
-  if (!$group->isNodeInGroup($node)) {
+  if (!$group->isNodeInGroup($node) && $op != 'add') {
     return FALSE;
   }
 
@@ -206,6 +215,9 @@ function group_content_access($group, $node, $op) {
   // Memebr - can view anything but only edit own content
   $membership = $group->getGroupMemebrship($user);
   switch ($op) {
+  case 'add':
+    return TRUE;
+    break;
   case 'view':
     return TRUE;
     break;
@@ -432,6 +444,9 @@ function group_discussion_page_view($group, $node) {
   $type = 'node';
   drupal_alter(array('node_view', 'entity_view'), $build['node'], $type);
 
+  // Build thread...
+  $build['thread'] = _build_discussion_thread($node, 'discussion_replies', $langcode);
+
   // Add in reply form
   $reply_node = new StdClass();
   $reply_node->uid = $user->uid;
@@ -452,9 +467,71 @@ function group_discussion_page_view($group, $node) {
   $reply_form['group_assignment']['#access'] = FALSE;
   $reply_form['group_assignment']['groups']['#access'] = FALSE;
 
-
   $build['reply'] = $reply_form;
-dpm($reply_form);
+
+  return $build;
+}
+
+function _build_discussion_thread($org_node, $view_mode, $langcode) {
+  $build = array();
+
+  $query = new EntityFieldQuery();
+  $query->entityCondition('entity_type', 'node');
+  $query->entityCondition('bundle', 'discussion');
+  $query->fieldCondition('field_reply_to', 'target_id', $org_node->nid);
+  $results = $query->execute();
+
+  if (isset($results['node'])) {
+    $nodes = node_load_multiple(array_keys($results['node']));
+
+    foreach ($nodes as $node) {
+      // Populate $node->content with a render() array.
+      node_build_content($node, $view_mode, $langcode);
+      $node_content = $node->content;
+      // We don't need duplicate rendering info in node->content.
+      unset($node->content);
+
+      $node_content += array(
+        '#theme' => 'node',
+        '#node' => $node,
+        '#view_mode' => 'full',
+        '#language' => $node->language,
+      );
+
+      // Allow modules to modify the structured node.
+      $type = 'node';
+      drupal_alter(array('node_view', 'entity_view'), $node_content, $type);
+
+      $build[] = array(
+        'node' => $node_content,
+        'children' => _build_discussion_thread($node, $view_mode, $langcode)
+      );
+    }
+  }
+
+  return $build;
+}
+
+function group_discussion_add($group) {
+  module_load_include('inc', 'node', 'node.pages');
+  global $user;
+  $build = array();
+
+  $node = new StdClass();
+  $node->uid = $user->uid;
+  $node->name = isset($user->name) ? $user->name : '';
+  $node->type = 'discussion';
+  $node->language = LANGUAGE_NONE;
+
+  $form = drupal_get_form('discussion_node_form', $node);
+  $form['field_reply_to']['#access'] = FALSE;
+  $form['menu']['#access'] = FALSE;
+  $form['path']['#access'] = FALSE;
+  $form['additional_settings']['#access'] = FALSE;
+  $form['revision_information']['#access'] = FALSE;
+
+  $build['reply'] = $form;
+
   return $build;
 }
 
@@ -664,16 +741,16 @@ function discussion_preprocess_page(&$variables) {
     '#theme' => 'item_list',
     '#items' => array(
       'discussion' => array(
-        'data' => l('Start New Discussion', 'node/add/discussion'),
+        'data' => l('Start New Discussion', 'group/' . $group->gid . '/discussion/add'),
       ),
       'event' => array(
-        'data' => l('Create New Event', 'node/add/event'),
+        'data' => l('Create New Event', 'group/' . $group->gid . '/event/add'),
       ),
       'image' => array(
-        'data' => l('Upload New Image', 'node/add/image'),
+        'data' => l('Upload New Image', 'group/' . $group->gid . '/image/add'),
       ),
       'gallery' => array(
-        'data' => l('Start New Gallery', 'node/add/gallery'),
+        'data' => l('Start New Gallery', 'group/' . $group->gid . '/gallery/add'),
       ),
     ),
     '#title' => t('Add content'),
@@ -691,7 +768,7 @@ function discussion_preprocess_page(&$variables) {
 
   }
   elseif($q[0] == 'group') {
-    $group = discussions_get_current_group();
+    $group = discussion_get_current_group();
 
     if (!empty($group)) {
       $sidebar['group_content'] = array(
@@ -780,7 +857,7 @@ function discussion_theme_registry_alter(&$theme_registry) {
 
 }
 
-function discussions_get_current_group() {
+function discussion_get_current_group() {
   if ($group = menu_get_object('group', 1)) {
     return $group;
   }
