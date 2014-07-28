@@ -70,9 +70,9 @@ function discussion_group_entity_info() {
     'label' => t('Group Membership'),
     'controller class' => 'GroupMembershipController',
     'entity class' => 'GroupMembership',
-    'load hook' => 'luw_group_membership_load',
-    'uri callback' => 'luw_group_membership_uri',
-    'label callback' => 'luw_group_membership_label',
+    'load hook' => 'discussion_group_membership_load',
+    'uri callback' => 'discussion_group_membership_uri',
+    'label callback' => 'discussion_group_membership_label',
     'fieldable' => TRUE,
     'access callback' => 'group_membership_entity_access',
     'entity keys' => array(
@@ -101,9 +101,9 @@ function discussion_group_entity_info() {
     'label' => t('Group Content'),
     'controller class' => 'GroupContentController',
     'entity class' => 'Groupcontent',
-    'load hook' => 'luw_group_content_load',
-    'uri callback' => 'luw_group_content_uri',
-    'label callback' => 'luw_group_content_label',
+    'load hook' => 'discussion_group_content_load',
+    'uri callback' => 'discussion_group_content_uri',
+    'label callback' => 'discussion_group_content_label',
     'fieldable' => TRUE,
     'access callback' => 'group_content_entity_access',
     'entity keys' => array(
@@ -278,11 +278,11 @@ function group_membership_load() {
 
 }
 
-function luw_group_membership_uri() {
+function discussion_group_membership_uri() {
 
 }
 
-function luw_group_membership_label() {
+function discussion_group_membership_label() {
 
 }
 

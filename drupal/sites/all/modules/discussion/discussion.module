@@ -10,21 +10,21 @@ include_once 'discussion.features.inc';
 function discussion_menu() {
   $items['login'] = array(
     'title' => 'blogs',
-    'page callback' => 'luw_login_page_view',
+    'page callback' => 'discussion_login_page_view',
     'access arguments' => array('access content'),
     'type' => MENU_SUGGESTED_ITEM,
   );
 
   $items['dashboard'] = array(
     'title' => '',
-    'page callback' => 'luw_dashboard_page_view',
+    'page callback' => 'discussion_dashboard_page_view',
     'access arguments' => array('access content'),
     'type' => MENU_SUGGESTED_ITEM,
   );
 
   $items['group/%group'] = array(
     'title' => '',
-    'page callback' => 'luw_group_dashboard_page_view',
+    'page callback' => 'discussion_group_dashboard_page_view',
     'page arguments' => array(1),
     'access callback' => 'group_entity_access',
     'access arguments' => array( 1, 'access groups'),
@@ -33,7 +33,7 @@ function discussion_menu() {
 
   $items['group/%group/memberships'] = array(
     'title' => '',
-    'page callback' => 'luw_group_membership_page_view',
+    'page callback' => 'discussion_group_membership_page_view',
     'page arguments' => array(1),
     'access arguments' => array('access content'),
     'type' => MENU_SUGGESTED_ITEM,
@@ -43,7 +43,7 @@ function discussion_menu() {
 /*
   $items['group/%group/memberships'] = array(
     'title' => '',
-    'page callback' => 'luw_group_membership_page_view',
+    'page callback' => 'discussion_group_membership_page_view',
     'page arguments' => array(1),
     'access arguments' => array('access content'),
     'type' => MENU_SUGGESTED_ITEM,
@@ -221,13 +221,13 @@ function group_content_access($group, $node, $op) {
   return FALSE;
 }
 
-function luw_login_page_view() {
+function discussion_login_page_view() {
   $build = array();
 
   return $build;
 }
 
-function luw_dashboard_page_view() {
+function discussion_dashboard_page_view() {
   global $user;
 
   drupal_set_title('Dashboard');
@@ -304,7 +304,7 @@ function _sort_entities_by_created($a, $b) {
   return ($a->created < $b->created) ? 1 : -1;
 }
 
-function luw_group_dashboard_page_view($group) {
+function discussion_group_dashboard_page_view($group) {
 
   drupal_set_title($group->label());
 
@@ -367,7 +367,7 @@ function luw_group_dashboard_page_view($group) {
   return $build;
 }
 
-function luw_group_membership_page_view($group) {
+function discussion_group_membership_page_view($group) {
   $build = array();
   drupal_set_title($group->label() . ' Group Memberships');
 

@@ -313,7 +313,39 @@ function group_add_user_by_email_form_submit($form, &$form_state) {
   }
   // If not, create and send an email.
   else {
+    $password = user_password(8);
 
+    $fields = array(
+      'name' => 'username',
+      'mail' => $form_state['values']['email'],
+      'pass' => $password,
+      'status' => 1,
+      'init' => 'email address',
+      'roles' => array(
+        DRUPAL_AUTHENTICATED_RID => 'authenticated user',
+        5 => 'Group Member',
+      ),
+    );
+
+    //the first parameter is left blank so a new user is created
+    $account = user_save('', $fields);
+
+    // If you want to send the welcome email, use the following code
+
+    // Manually set the password so it appears in the e-mail.
+    $account->password = $fields['pass'];
+
+    // Send the e-mail through the user module.
+    drupal_mail('user', 'register_no_approval_required', $form_state['values']['email'], NULL, array('account' => $account), variable_get('site_mail', '<a href="mailto:noreply@example..com">noreply@example..com</a>'));
+    drupal_set_message('User created. Email was sent to user with further instructions.');
+
+    // Add to group
+    $gm = entity_create('group_membership', array());
+    $gm->gid = $group->gid;
+    $gm->grid = 0;
+    $gm->uid = $account->uid;
+
+    $gm->save();
   }
 }
 
