@@ -7,3 +7,6 @@ sites/*/private
 
 .DS_Store
 /sites/all/themes/.DS_Store
+
+pvt
+pvt/*
