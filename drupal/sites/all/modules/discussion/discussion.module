@@ -50,6 +50,22 @@ function discussion_menu() {
   );
 */
 
+  $items['group/%group/discussions'] = array(
+    'title' => '',
+    'page callback' => 'discussion_group_discussion_landing_page_view',
+    'page arguments' => array(1),
+    'access arguments' => array('access content'),
+    'type' => MENU_SUGGESTED_ITEM,
+  );
+
+  $items['group/%group/events'] = array(
+    'title' => '',
+    'page callback' => 'discussion_group_event_landing_page_view',
+    'page arguments' => array(1),
+    'access arguments' => array('access content'),
+    'type' => MENU_SUGGESTED_ITEM,
+  );
+
   // Individual Content Pages
   $items['group/%group/discussion/add'] = array(
     'title' => '',
@@ -62,12 +78,13 @@ function discussion_menu() {
 
   $items['group/%group/discussion/%node'] = array(
     'title' => '',
-    'page callback' => 'group_discussion_page_view',
+    'page callback' => 'discussion_group_discussion_page_view',
     'page arguments' => array(1, 3),
     'access callback' => 'group_content_access',
     'access arguments' => array(1, 3, 'view'),
     'type' => MENU_SUGGESTED_ITEM,
   );
+
 
 
 
@@ -149,8 +166,8 @@ function discussion_menu() {
  */
 function discussion_menu_alter(&$items) {
 
-  unset($items['node']);
-  unset($items['node/%node']);
+  //unset($items['node']);
+  //unset($items['node/%node']);
 }
 
 function group_admin() {
@@ -418,9 +435,21 @@ function discussion_group_membership_page_view($group) {
   return $build;
 }
 
-function group_discussion_page_view($group, $node) {
+function discussion_group_discussion_page_view($group, $node) {
   global $user;
   module_load_include('inc', 'node', 'node.pages');
+
+  drupal_set_title($node->title);
+
+  // Build Breadcrumbs
+  $breadcrumb = array();
+  $breadcrumb[] = l('Dashboard', '<front>');
+  $breadcrumb[] = l($group->label() . ' Dashboard', 'group/' . $group->gid);
+  $breadcrumb[] = l('Discussions', 'group/' . $group->gid . '/discussions');
+
+  // Set Breadcrumbs
+  drupal_set_breadcrumb($breadcrumb);
+
 
   $build = array();
   $view_mode = 'full';
@@ -432,6 +461,8 @@ function group_discussion_page_view($group, $node) {
   $build['node'] = $node->content;
   // We don't need duplicate rendering info in node->content.
   unset($node->content);
+
+  $node->thread = _build_discussion_thread($node, 'discussion_replies', $langcode);
 
   $build['node'] += array(
     '#theme' => 'node',
@@ -445,29 +476,7 @@ function group_discussion_page_view($group, $node) {
   drupal_alter(array('node_view', 'entity_view'), $build['node'], $type);
 
   // Build thread...
-  $build['thread'] = _build_discussion_thread($node, 'discussion_replies', $langcode);
-
-  // Add in reply form
-  $reply_node = new StdClass();
-  $reply_node->uid = $user->uid;
-  $reply_node->name = isset($user->name) ? $user->name : '';
-  $reply_node->type = 'discussion';
-  $reply_node->language = LANGUAGE_NONE;
-  $reply_node->title = 'Reply to ' . $node->title;
-  $reply_node->field_reply_to[LANGUAGE_NONE][0]['target_id'] = $node->nid;
-
-  $reply_form = drupal_get_form('discussion_node_form', $reply_node);
-  $reply_form['title']['#access'] = FALSE;
-  $reply_form['field_reply_to']['#access'] = FALSE;
-  $reply_form['menu']['#access'] = FALSE;
-  $reply_form['path']['#access'] = FALSE;
-  $reply_form['additional_settings']['#access'] = FALSE;
-  $reply_form['revision_information']['#access'] = FALSE;
-
-  $reply_form['group_assignment']['#access'] = FALSE;
-  $reply_form['group_assignment']['groups']['#access'] = FALSE;
-
-  $build['reply'] = $reply_form;
+  //$build['thread'] = _build_discussion_thread($node, 'discussion_replies', $langcode);
 
   return $build;
 }
@@ -491,10 +500,12 @@ function _build_discussion_thread($org_node, $view_mode, $langcode) {
       // We don't need duplicate rendering info in node->content.
       unset($node->content);
 
+      $node->thread = _build_discussion_thread($node, 'discussion_replies', $langcode);
+
       $node_content += array(
         '#theme' => 'node',
         '#node' => $node,
-        '#view_mode' => 'full',
+        '#view_mode' => $view_mode,
         '#language' => $node->language,
       );
 
@@ -504,10 +515,138 @@ function _build_discussion_thread($org_node, $view_mode, $langcode) {
 
       $build[] = array(
         'node' => $node_content,
-        'children' => _build_discussion_thread($node, $view_mode, $langcode)
+        //'children' => _build_discussion_thread($node, $view_mode, $langcode)
       );
     }
   }
+
+  return $build;
+}
+
+function discussion_group_discussion_landing_page_view($group) {
+  drupal_set_title(t($group->label() . ' Discussions'));
+
+  // Build Breadcrumbs
+  $breadcrumb = array();
+  $breadcrumb[] = l('Dashboard', '<front>');
+  $group_uri = $group->uri();
+  $breadcrumb[] = l($group->label(), $group_uri['path'], $group_uri['options']);
+
+  // Set Breadcrumbs
+  drupal_set_breadcrumb($breadcrumb);
+
+  // Add main content
+  $build = array(
+    '#type' => 'container',
+    'items' => array(),
+    '#prefix' => '<div id="latest-content-item-list">',
+    '#suffix' => '</div>',
+  );
+
+
+  $page = isset($_GET['page'])? $_GET['page'] : 0;
+  $page_count = 20;
+  $offset = $page * $page_count;
+
+  $count = _pull_latest_content($group, NULL, NULL, 'discussion');
+
+  $items = _pull_latest_content($group, $offset, $page_count, 'discussion');
+
+  foreach ($items as $item) {
+
+    $entity_type = $item->__nc;
+
+    if ($entity_type == 'node') {
+      $content = node_view($item, 'latest_feed', $item->language);
+    }
+    else {
+      $content = comment_view($item, node_load($item->nid), 'latest_feed', $item->language);
+    }
+
+    $content += array(
+      '#theme' => 'entity',
+      '#entity_type' => $entity_type,
+      '#entity' => $item,
+      '#view_mode' => 'latest_feed',
+      '#language' => $item->language,
+      '#page' => NULL,
+    );
+
+    $build['items'][] = $content;
+  }
+
+  $max = ceil($count/$page_count) - 1;
+  if ($max < 0) $max = 0;
+
+  $build['pager'] = array(
+    '#theme' => 'latest_feed_pager',
+    '#page' => $page,
+    '#max' => $max,
+  );
+
+  return $build;
+}
+
+function discussion_group_event_landing_page_view($group) {
+  drupal_set_title(t($group->label() . ' Events'));
+
+  // Build Breadcrumbs
+  $breadcrumb = array();
+  $breadcrumb[] = l('Dashboard', '<front>');
+  $group_uri = $group->uri();
+  $breadcrumb[] = l($group->label(), $group_uri['path'], $group_uri['options']);
+
+  // Set Breadcrumbs
+  drupal_set_breadcrumb($breadcrumb);
+
+  // Add main content
+  $build = array(
+    '#type' => 'container',
+    'items' => array(),
+    '#prefix' => '<div id="latest-content-item-list">',
+    '#suffix' => '</div>',
+  );
+
+
+  $page = isset($_GET['page'])? $_GET['page'] : 0;
+  $page_count = 20;
+  $offset = $page * $page_count;
+
+  $count = _pull_latest_content($group, NULL, NULL, 'event');
+
+  $items = _pull_latest_content($group, $offset, $page_count, 'event');
+
+  foreach ($items as $item) {
+
+    $entity_type = $item->__nc;
+
+    if ($entity_type == 'node') {
+      $content = node_view($item, 'latest_feed', $item->language);
+    }
+    else {
+      $content = comment_view($item, node_load($item->nid), 'latest_feed', $item->language);
+    }
+
+    $content += array(
+      '#theme' => 'entity',
+      '#entity_type' => $entity_type,
+      '#entity' => $item,
+      '#view_mode' => 'latest_feed',
+      '#language' => $item->language,
+      '#page' => NULL,
+    );
+
+    $build['items'][] = $content;
+  }
+
+  $max = ceil($count/$page_count) - 1;
+  if ($max < 0) $max = 0;
+
+  $build['pager'] = array(
+    '#theme' => 'latest_feed_pager',
+    '#page' => $page,
+    '#max' => $max,
+  );
 
   return $build;
 }
@@ -535,7 +674,7 @@ function group_discussion_add($group) {
   return $build;
 }
 
-function _pull_latest_content($group = NULL, $offset = 0, $limit = 10) {
+function _pull_latest_content($group = NULL, $offset = 0, $limit = 10, $content_type = '') {
   $items = array();
   $groups = array();
 
@@ -546,6 +685,8 @@ function _pull_latest_content($group = NULL, $offset = 0, $limit = 10) {
     $groups = array($group->gid => $group);
   }
 
+  // This was the old way. I got rid of actual comments so now we can use EFQ
+  /*
   if (!empty($groups)) {
 
     $query = "(
@@ -583,6 +724,43 @@ function _pull_latest_content($group = NULL, $offset = 0, $limit = 10) {
         $i->__nc = $r->nc;
 
         $items[] = $i;
+      }
+    }
+
+
+  }
+  */
+
+  if (!empty($groups)) {
+    $query = new EntityFieldQuery();
+    $query->entityCondition('entity_type', 'group_content');
+    $query->propertyCondition('gid', array_keys($groups), 'IN');
+
+    if ($content_type != '' && is_string($content_type)) {
+      $query->propertyCondition('entity_bundle', $content_type);
+    }
+
+    if ($offset == NULL && $limit == NULL) {
+      $query->count();
+      $results = $query->execute();
+      return $results;
+    }
+    else {
+      $query->range($offset, $limit);
+    }
+
+    $query->propertyOrderBy('created', 'DESC');
+    $results = $query->execute();
+
+    if (isset($results['group_content'])) {
+      $group_contents = entity_load('group_content', array_keys($results['group_content']));
+
+      foreach ($group_contents as $gc) {
+        $func = $gc->entity_type . '_load';
+        if ($i = $func($gc->eid)) {
+          $i->__nc = $gc->entity_type;
+          $items[] = $i;
+        }
       }
     }
 
@@ -817,6 +995,48 @@ function discussion_preprocess_node(&$variables) {
     $account = user_load($variables['uid']);
     $variables['user_picture'] = theme('user_picture', array('account' => $account, 'style_name' => 'user_img_normal'));
   }
+
+  if (in_array($variables['view_mode'], array('full', 'discussion_replies'))) {
+
+    $user = $variables['user'];
+    $node = $variables['node'];
+
+    // Add in reply form
+    $reply_node = new StdClass();
+    $reply_node->uid = $user->uid;
+    $reply_node->name = isset($user->name) ? $user->name : '';
+    $reply_node->type = 'discussion';
+    $reply_node->language = LANGUAGE_NONE;
+    $reply_node->title = 'Reply to: ' . $node->title;
+    $reply_node->field_reply_to[LANGUAGE_NONE][0]['target_id'] = $node->nid;
+    //$reply_node->body[LANGUAGE_NONE][0]['value'] = $node->nid;
+
+    $reply_form = drupal_get_form('discussion_node_form', $reply_node);
+    $reply_form['title']['#access'] = FALSE;
+    //$reply_form['field_reply_to']['#access'] = FALSE;
+    $reply_form['field_reply_to']['#default_value'] = $node->nid;
+    $reply_form['menu']['#access'] = FALSE;
+    $reply_form['path']['#access'] = FALSE;
+    $reply_form['additional_settings']['#access'] = FALSE;
+    $reply_form['revision_information']['#access'] = FALSE;
+
+    $reply_form['group_assignment']['#access'] = FALSE;
+    $reply_form['group_assignment']['groups']['#access'] = FALSE;
+
+    $variables['reply_form'] = $reply_form;
+
+  }
+}
+
+/**
+ * Implements hook_form_alter().
+ */
+function discussion_form_alter(&$form, &$form_state, $form_id) {
+  $form['#validate'][] = 'pai_test_validation';
+}
+
+function pai_test_validation($form, $form_state) {
+
 }
 
 /**
@@ -862,4 +1082,13 @@ function discussion_get_current_group() {
     return $group;
   }
   return NULL;
+}
+
+function _get_discussion_parent($node) {
+  if (isset($node->field_reply_to[LANGUAGE_NONE][0]['target_id'])) {
+    $node = node_load($node->field_reply_to[LANGUAGE_NONE][0]['target_id']);
+    $node = _get_discussion_parent($node);
+  }
+
+  return $node;
 }

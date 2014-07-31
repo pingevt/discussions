@@ -3,7 +3,6 @@
   Drupal.behaviors.dMiniCal = {
     attach: function (context) {
       $('.mini-calendar', context).each(function() {
-console.log('HERE');
 
         var self = this
 
@@ -17,10 +16,10 @@ console.log('HERE');
           events: [],
           clickEvents: {
             onMonthChange: function (month) {
-console.log($(self).data('href'));
+//console.log($(self).data('href'));
               // get data
               $.get($(self).data('href'), {date: month.format('YYYY-MM-DD')}, function (response) {
-console.log(response);
+//console.log(response);
                 calendar.setEvents(response);
               });
             }

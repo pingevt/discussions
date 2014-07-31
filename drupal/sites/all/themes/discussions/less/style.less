@@ -152,6 +152,11 @@ pre {
   white-space: pre-wrap;
 }
 
+textarea {
+  resize: both;
+  max-width: 100%;
+}
+
 /**
  * Skip link.
  */
@@ -1081,7 +1086,7 @@ div.add-or-remove-shortcuts {
 #sidebar #user-info-block {
   margin-bottom: 32px;
 
-  .user-picture {
+  .user-img {
     float: left;
     margin: 0 8px 8px 0;
 
@@ -1152,6 +1157,16 @@ div.add-or-remove-shortcuts {
   }
 }
 
+.tile {
+  background: fadeout(@base_blue, 97%);
+  border: 1px solid lighten(@gray-light, 25%);
+  .box-shadow(@shadow: 0 1px 3px rgba(0,0,0,.25));
+  padding: 10px;
+  margin: 10px 0;
+  .border-top-radius(4px);
+}
+
+
 /**
  * Latest Item List
  */
@@ -1161,12 +1176,7 @@ div.add-or-remove-shortcuts {
   padding: 10px;
 
   article {
-    background: fadeout(@base_blue, 97%);
-    border: 1px solid lighten(@gray-light, 25%);
-    .box-shadow(@shadow: 0 1px 3px rgba(0,0,0,.25));
-    padding: 10px;
-    margin: 10px 0;
-    .border-top-radius(4px);
+    .tile;
 
     header {
       .user-picture {
@@ -1253,4 +1263,35 @@ div.add-or-remove-shortcuts {
       color: @white;
     }
   }
+}
+
+.node {
+  .tile;
+
+  .submitted {
+    font-size: 12px;
+    .user-picture {
+      float: left;
+      margin-right: 10px;
+    }
+
+    .submitted-date {
+      .text-right();
+    }
+  }
+}
+
+.page-group-discussion- {
+  .thread {
+    border-left: 2px solid @gray-lighter;
+  }
+}
+
+.reply-to-btn {
+  margin-top: 10px;
+}
+
+/* TODO: NEED TO FIX THIS */
+.field-type-entityreference.field-name-field-reply-to {
+  display: none;
 }

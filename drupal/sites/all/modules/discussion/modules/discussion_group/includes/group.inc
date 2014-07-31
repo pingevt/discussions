@@ -35,9 +35,9 @@ class Group extends Entity {
 
     $query = new EntityFieldQuery();
     $query->entityCondition('entity_type', 'group_membership');
-    if ($user->uid != 1) {
+    //if ($user->uid != 1) {
       $query->propertyCondition('uid', $user->uid);
-    }
+    //}
 
     $result = $query->execute();
 

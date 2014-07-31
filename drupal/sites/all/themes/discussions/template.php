@@ -43,6 +43,21 @@ function discussions_preprocess_page(&$vars) {
 }
 
 /**
+ * Implements hook_preprocess_HOOK().
+ */
+function discussions_preprocess_node(&$variables) {
+
+  if (isset($variables['submitted']) && $variables['submitted'] != '') {
+    $variables['submitted'] = '<div class="submitted-date">' . date('n/j/y', $variables['node']->created) . '<br />' . date('h:ia', $variables['node']->created) . '</div>';
+  }
+
+  if ($variables['node']->type == 'discussion') {
+    drupal_add_js(path_to_theme() . '/bootstrap/js/collapse.js');
+    drupal_add_js(path_to_theme() . '/bootstrap/js/transition.js');
+  }
+}
+
+/**
  * Display the list of available node types for node creation.
  */
 function discussions_node_add_list($variables) {
@@ -121,4 +136,48 @@ function discussions_css_alter(&$css) {
     $css['misc/ui/jquery.ui.theme.css']['data'] = drupal_get_path('theme', 'discussions') . '/jquery.ui.theme.css';
     $css['misc/ui/jquery.ui.theme.css']['type'] = 'file';
   }
+}
+
+function discussions_textarea($variables) {
+  $element = $variables['element'];
+  $element['#attributes']['name'] = $element['#name'];
+  $element['#attributes']['id'] = $element['#id'];
+  $element['#attributes']['cols'] = $element['#cols'];
+  $element['#attributes']['rows'] = $element['#rows'];
+  _form_set_class($element, array('form-textarea'));
+
+  $wrapper_attributes = array(
+    'class' => array('form-textarea-wrapper'),
+  );
+
+  // Add resizable behavior.
+  if (!empty($element['#resizable'])) {
+    $wrapper_attributes['class'][] = 'resizable';
+  }
+  if (!empty($element['#attributes']['rows']) && $element['#attributes']['rows'] > 5) {
+    $element['#attributes']['rows'] = 5;
+  }
+
+  $output = '<div' . drupal_attributes($wrapper_attributes) . '>';
+  $output .= '<textarea' . drupal_attributes($element['#attributes']) . '>' . check_plain($element['#value']) . '</textarea>';
+  $output .= '</div>';
+
+  return $output;
+}
+
+/**
+ * Implements hook_node_view_alter().
+ */
+function discussions_node_view_alter(&$build) {
+
+  if ($build['#bundle'] == 'discussion' && in_array($build['#view_mode'], array('full', 'discussion_replies'))) {
+
+    $build['#contextual_links'] = array(
+      'node' => array(
+        'node',
+        array($build['#node']->nid),
+      ),
+    );
+  }
+  //dpm($build);
 }
