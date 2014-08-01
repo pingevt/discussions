@@ -13,6 +13,7 @@ function discussion_menu() {
     'page callback' => 'discussion_login_page_view',
     'access arguments' => array('access content'),
     'type' => MENU_SUGGESTED_ITEM,
+    'file' => 'discussion.pages.inc',
   );
 
   $items['dashboard'] = array(
@@ -20,6 +21,7 @@ function discussion_menu() {
     'page callback' => 'discussion_dashboard_page_view',
     'access arguments' => array('access content'),
     'type' => MENU_SUGGESTED_ITEM,
+    'file' => 'discussion.pages.inc',
   );
 
   $items['group/%group'] = array(
@@ -29,6 +31,7 @@ function discussion_menu() {
     'access callback' => 'group_entity_access',
     'access arguments' => array( 1, 'access groups'),
     'type' => MENU_SUGGESTED_ITEM,
+    'file' => 'discussion.pages.inc',
   );
 
   $items['group/%group/memberships'] = array(
@@ -37,25 +40,17 @@ function discussion_menu() {
     'page arguments' => array(1),
     'access arguments' => array('access content'),
     'type' => MENU_SUGGESTED_ITEM,
+    'file' => 'discussion.pages.inc',
   );
 
   // Content lists
-/*
-  $items['group/%group/memberships'] = array(
-    'title' => '',
-    'page callback' => 'discussion_group_membership_page_view',
-    'page arguments' => array(1),
-    'access arguments' => array('access content'),
-    'type' => MENU_SUGGESTED_ITEM,
-  );
-*/
-
   $items['group/%group/discussions'] = array(
     'title' => '',
     'page callback' => 'discussion_group_discussion_landing_page_view',
     'page arguments' => array(1),
     'access arguments' => array('access content'),
     'type' => MENU_SUGGESTED_ITEM,
+    'file' => 'discussion.pages.inc',
   );
 
   $items['group/%group/events'] = array(
@@ -64,16 +59,18 @@ function discussion_menu() {
     'page arguments' => array(1),
     'access arguments' => array('access content'),
     'type' => MENU_SUGGESTED_ITEM,
+    'file' => 'discussion.pages.inc',
   );
 
   // Individual Content Pages
   $items['group/%group/discussion/add'] = array(
     'title' => '',
-    'page callback' => 'group_discussion_add',
+    'page callback' => 'discussion_group_discussion_add',
     'page arguments' => array(1),
     'access callback' => 'group_content_access',
     'access arguments' => array(1, NULL, 'add'),
     'type' => MENU_SUGGESTED_ITEM,
+    'file' => 'discussion.pages.inc',
   );
 
   $items['group/%group/discussion/%node'] = array(
@@ -83,6 +80,27 @@ function discussion_menu() {
     'access callback' => 'group_content_access',
     'access arguments' => array(1, 3, 'view'),
     'type' => MENU_SUGGESTED_ITEM,
+    'file' => 'discussion.pages.inc',
+  );
+
+  $items['group/%group/event/add'] = array(
+    'title' => '',
+    'page callback' => 'discussion_group_event_add',
+    'page arguments' => array(1),
+    'access callback' => 'group_content_access',
+    'access arguments' => array(1, NULL, 'add'),
+    'type' => MENU_SUGGESTED_ITEM,
+    'file' => 'discussion.pages.inc',
+  );
+
+  $items['group/%group/event/%node'] = array(
+    'title' => '',
+    'page callback' => 'discussion_group_event_page_view',
+    'page arguments' => array(1, 3),
+    'access callback' => 'group_content_access',
+    'access arguments' => array(1, 3, 'view'),
+    'type' => MENU_SUGGESTED_ITEM,
+    'file' => 'discussion.pages.inc',
   );
 
 
@@ -104,8 +122,6 @@ function discussion_menu() {
     'access callback' => TRUE,
     'type' => MENU_CALLBACK,
   );
-
-
 
   // Super admin pages
   //admin/structure/discussion/group-membership/membership/manage
@@ -250,235 +266,11 @@ function group_content_access($group, $node, $op) {
   return FALSE;
 }
 
-function discussion_login_page_view() {
-  $build = array();
-
-  return $build;
-}
-
-function discussion_dashboard_page_view() {
-  global $user;
-
-  drupal_set_title('Dashboard');
-
-  $groups = Group::getCurrentUserGroups();
-
-  if (count($groups) == 1) {
-    drupal_goto('group/' . current($groups)->gid);
-  }
-
-  // Add main content
-  $build = array(
-
-    '#type' => 'container',
-    'items' => array(),
-    '#prefix' => '<div id="latest-content-item-list">',
-    '#suffix' => '</div>',
-  );
-
-  // Pull all comments and nodes...
-  if (!empty($groups)) {
-    $page = isset($_GET['page'])? $_GET['page'] : 0;
-    $page_count = 20;
-    $offset = $page * $page_count;
-
-    $count = _pull_latest_content(NULL, NULL, NULL);
-
-    $items = _pull_latest_content(NULL, $offset, $page_count);
-
-    foreach ($items as $item) {
-
-      $entity_type = $item->__nc;
-
-      if ($entity_type == 'node') {
-        $content = node_view($item, 'latest_feed', $item->language);
-      }
-      else {
-        $content = comment_view($item, node_load($item->nid), 'latest_feed', $item->language);
-      }
-
-      $content += array(
-        '#theme' => 'entity',
-        '#entity_type' => $entity_type,
-        '#entity' => $item,
-        '#view_mode' => 'latest_feed',
-        '#language' => $item->language,
-        '#page' => NULL,
-      );
-
-      $build['items'][] = $content;
-    }
-
-    $max = ceil($count/$page_count) - 1;
-    if ($max < 0) $max = 0;
-
-    $build['pager'] = array(
-      '#theme' => 'latest_feed_pager',
-      '#page' => $page,
-      '#max' => $max,
-    );
-  }
-  else {
-    // TODO: dosomething here...
-    $build['#items'][] = 'You do not belong to any groups.';
-  }
-
-  return $build;
-}
-
 function _sort_entities_by_created($a, $b) {
   if ($a->created == $b->created) {
     return 0;
   }
   return ($a->created < $b->created) ? 1 : -1;
-}
-
-function discussion_group_dashboard_page_view($group) {
-
-  drupal_set_title($group->label());
-
-  // Build Breadcrumbs
-  $breadcrumb = array();
-  $breadcrumb[] = l('Dashboard', '<front>');
-
-  // Set Breadcrumbs
-  drupal_set_breadcrumb($breadcrumb);
-
-  // Add main content
-  $build = array(
-    '#type' => 'container',
-    'items' => array(),
-    '#prefix' => '<div id="latest-content-item-list">',
-    '#suffix' => '</div>',
-  );
-
-
-  $page = isset($_GET['page'])? $_GET['page'] : 0;
-  $page_count = 20;
-  $offset = $page * $page_count;
-
-  $count = _pull_latest_content($group, NULL, NULL);
-
-  $items = _pull_latest_content($group, $offset, $page_count);
-
-  foreach ($items as $item) {
-
-    $entity_type = $item->__nc;
-
-    if ($entity_type == 'node') {
-      $content = node_view($item, 'latest_feed', $item->language);
-    }
-    else {
-      $content = comment_view($item, node_load($item->nid), 'latest_feed', $item->language);
-    }
-
-    $content += array(
-      '#theme' => 'entity',
-      '#entity_type' => $entity_type,
-      '#entity' => $item,
-      '#view_mode' => 'latest_feed',
-      '#language' => $item->language,
-      '#page' => NULL,
-    );
-
-    $build['items'][] = $content;
-  }
-
-  $max = ceil($count/$page_count) - 1;
-  if ($max < 0) $max = 0;
-
-  $build['pager'] = array(
-    '#theme' => 'latest_feed_pager',
-    '#page' => $page,
-    '#max' => $max,
-  );
-
-  return $build;
-}
-
-function discussion_group_membership_page_view($group) {
-  $build = array();
-  drupal_set_title($group->label() . ' Group Memberships');
-
-  // Build Breadcrumbs
-  $breadcrumb = array();
-  $breadcrumb[] = l('Dashboard', '<front>');
-  $breadcrumb[] = l($group->label() . ' Dashboard', 'group/' . $group->gid);
-
-  // Set Breadcrumbs
-  drupal_set_breadcrumb($breadcrumb);
-
-
-
-  // Add user
-  $build['add_user'] = drupal_get_form('group_add_user_by_email_form', $group);
-
-  // List members
-  $members = $group->getGroupMembers();
-
-  $build['members_table'] = array(
-    '#theme' => 'table',
-    '#header' => array('Username', 'Email', 'Group Role', 'Operations'),
-    '#rows' => array(),
-    '#empty' => 'There are no users in this group',
-  );
-
-  foreach ($members as $member) {
-    $build['members_table']['#rows'][] = array(
-      $member->_user->name,
-      $member->_user->mail,
-      $group->getUsersRole($member),
-      '',
-    );
-  }
-
-  return $build;
-}
-
-function discussion_group_discussion_page_view($group, $node) {
-  global $user;
-  module_load_include('inc', 'node', 'node.pages');
-
-  drupal_set_title($node->title);
-
-  // Build Breadcrumbs
-  $breadcrumb = array();
-  $breadcrumb[] = l('Dashboard', '<front>');
-  $breadcrumb[] = l($group->label() . ' Dashboard', 'group/' . $group->gid);
-  $breadcrumb[] = l('Discussions', 'group/' . $group->gid . '/discussions');
-
-  // Set Breadcrumbs
-  drupal_set_breadcrumb($breadcrumb);
-
-
-  $build = array();
-  $view_mode = 'full';
-  $langcode = NULL;
-
-  // Populate $node->content with a render() array.
-  node_build_content($node, $view_mode, $langcode);
-
-  $build['node'] = $node->content;
-  // We don't need duplicate rendering info in node->content.
-  unset($node->content);
-
-  $node->thread = _build_discussion_thread($node, 'discussion_replies', $langcode);
-
-  $build['node'] += array(
-    '#theme' => 'node',
-    '#node' => $node,
-    '#view_mode' => $view_mode,
-    '#language' => $langcode,
-  );
-
-  // Allow modules to modify the structured node.
-  $type = 'node';
-  drupal_alter(array('node_view', 'entity_view'), $build['node'], $type);
-
-  // Build thread...
-  //$build['thread'] = _build_discussion_thread($node, 'discussion_replies', $langcode);
-
-  return $build;
 }
 
 function _build_discussion_thread($org_node, $view_mode, $langcode) {
@@ -519,157 +311,6 @@ function _build_discussion_thread($org_node, $view_mode, $langcode) {
       );
     }
   }
-
-  return $build;
-}
-
-function discussion_group_discussion_landing_page_view($group) {
-  drupal_set_title(t($group->label() . ' Discussions'));
-
-  // Build Breadcrumbs
-  $breadcrumb = array();
-  $breadcrumb[] = l('Dashboard', '<front>');
-  $group_uri = $group->uri();
-  $breadcrumb[] = l($group->label(), $group_uri['path'], $group_uri['options']);
-
-  // Set Breadcrumbs
-  drupal_set_breadcrumb($breadcrumb);
-
-  // Add main content
-  $build = array(
-    '#type' => 'container',
-    'items' => array(),
-    '#prefix' => '<div id="latest-content-item-list">',
-    '#suffix' => '</div>',
-  );
-
-
-  $page = isset($_GET['page'])? $_GET['page'] : 0;
-  $page_count = 20;
-  $offset = $page * $page_count;
-
-  $count = _pull_latest_content($group, NULL, NULL, 'discussion');
-
-  $items = _pull_latest_content($group, $offset, $page_count, 'discussion');
-
-  foreach ($items as $item) {
-
-    $entity_type = $item->__nc;
-
-    if ($entity_type == 'node') {
-      $content = node_view($item, 'latest_feed', $item->language);
-    }
-    else {
-      $content = comment_view($item, node_load($item->nid), 'latest_feed', $item->language);
-    }
-
-    $content += array(
-      '#theme' => 'entity',
-      '#entity_type' => $entity_type,
-      '#entity' => $item,
-      '#view_mode' => 'latest_feed',
-      '#language' => $item->language,
-      '#page' => NULL,
-    );
-
-    $build['items'][] = $content;
-  }
-
-  $max = ceil($count/$page_count) - 1;
-  if ($max < 0) $max = 0;
-
-  $build['pager'] = array(
-    '#theme' => 'latest_feed_pager',
-    '#page' => $page,
-    '#max' => $max,
-  );
-
-  return $build;
-}
-
-function discussion_group_event_landing_page_view($group) {
-  drupal_set_title(t($group->label() . ' Events'));
-
-  // Build Breadcrumbs
-  $breadcrumb = array();
-  $breadcrumb[] = l('Dashboard', '<front>');
-  $group_uri = $group->uri();
-  $breadcrumb[] = l($group->label(), $group_uri['path'], $group_uri['options']);
-
-  // Set Breadcrumbs
-  drupal_set_breadcrumb($breadcrumb);
-
-  // Add main content
-  $build = array(
-    '#type' => 'container',
-    'items' => array(),
-    '#prefix' => '<div id="latest-content-item-list">',
-    '#suffix' => '</div>',
-  );
-
-
-  $page = isset($_GET['page'])? $_GET['page'] : 0;
-  $page_count = 20;
-  $offset = $page * $page_count;
-
-  $count = _pull_latest_content($group, NULL, NULL, 'event');
-
-  $items = _pull_latest_content($group, $offset, $page_count, 'event');
-
-  foreach ($items as $item) {
-
-    $entity_type = $item->__nc;
-
-    if ($entity_type == 'node') {
-      $content = node_view($item, 'latest_feed', $item->language);
-    }
-    else {
-      $content = comment_view($item, node_load($item->nid), 'latest_feed', $item->language);
-    }
-
-    $content += array(
-      '#theme' => 'entity',
-      '#entity_type' => $entity_type,
-      '#entity' => $item,
-      '#view_mode' => 'latest_feed',
-      '#language' => $item->language,
-      '#page' => NULL,
-    );
-
-    $build['items'][] = $content;
-  }
-
-  $max = ceil($count/$page_count) - 1;
-  if ($max < 0) $max = 0;
-
-  $build['pager'] = array(
-    '#theme' => 'latest_feed_pager',
-    '#page' => $page,
-    '#max' => $max,
-  );
-
-  return $build;
-}
-
-function group_discussion_add($group) {
-  module_load_include('inc', 'node', 'node.pages');
-  global $user;
-  $build = array();
-
-  $node = new StdClass();
-  $node->uid = $user->uid;
-  $node->name = isset($user->name) ? $user->name : '';
-  $node->type = 'discussion';
-  $node->language = LANGUAGE_NONE;
-
-  $form = drupal_get_form('discussion_node_form', $node);
-  $form['field_reply_to']['#access'] = FALSE;
-  $form['menu']['#access'] = FALSE;
-  $form['path']['#access'] = FALSE;
-  $form['additional_settings']['#access'] = FALSE;
-  $form['revision_information']['#access'] = FALSE;
-
-  $build['reply'] = $form;
 
   return $build;
 }
@@ -913,27 +554,6 @@ function discussion_preprocess_page(&$variables) {
       'data' => l($str, 'group/' . $group->gid),
     );
   }
-
-  // Setup add content block.
-  $sidebar['content'] = array(
-    '#theme' => 'item_list',
-    '#items' => array(
-      'discussion' => array(
-        'data' => l('Start New Discussion', 'group/' . $group->gid . '/discussion/add'),
-      ),
-      'event' => array(
-        'data' => l('Create New Event', 'group/' . $group->gid . '/event/add'),
-      ),
-      'image' => array(
-        'data' => l('Upload New Image', 'group/' . $group->gid . '/image/add'),
-      ),
-      'gallery' => array(
-        'data' => l('Start New Gallery', 'group/' . $group->gid . '/gallery/add'),
-      ),
-    ),
-    '#title' => t('Add content'),
-  );
-
   if ($dashboard) {
 
     // Setup mini calendar
@@ -947,6 +567,26 @@ function discussion_preprocess_page(&$variables) {
   }
   elseif($q[0] == 'group') {
     $group = discussion_get_current_group();
+
+    // Setup add content block.
+    $sidebar['content'] = array(
+      '#theme' => 'item_list',
+      '#items' => array(
+        'discussion' => array(
+          'data' => l('Start New Discussion', 'group/' . $group->gid . '/discussion/add'),
+        ),
+        'event' => array(
+          'data' => l('Create New Event', 'group/' . $group->gid . '/event/add'),
+        ),
+        'image' => array(
+          'data' => l('Upload New Image', 'group/' . $group->gid . '/image/add'),
+        ),
+        'gallery' => array(
+          'data' => l('Start New Gallery', 'group/' . $group->gid . '/gallery/add'),
+        ),
+      ),
+      '#title' => t('Add content'),
+    );
 
     if (!empty($group)) {
       $sidebar['group_content'] = array(
@@ -996,7 +636,7 @@ function discussion_preprocess_node(&$variables) {
     $variables['user_picture'] = theme('user_picture', array('account' => $account, 'style_name' => 'user_img_normal'));
   }
 
-  if (in_array($variables['view_mode'], array('full', 'discussion_replies'))) {
+  if (in_array($variables['view_mode'], array('full', 'discussion_replies')) && $variables['type'] == 'discussion') {
 
     $user = $variables['user'];
     $node = $variables['node'];

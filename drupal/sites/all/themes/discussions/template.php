@@ -179,5 +179,15 @@ function discussions_node_view_alter(&$build) {
       ),
     );
   }
+
+  if ($build['#bundle'] == 'event' && in_array($build['#view_mode'], array('full', 'discussion_replies'))) {
+
+    $build['#contextual_links'] = array(
+      'node' => array(
+        'node',
+        array($build['#node']->nid),
+      ),
+    );
+  }
   //dpm($build);
 }
