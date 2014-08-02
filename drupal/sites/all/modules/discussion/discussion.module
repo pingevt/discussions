@@ -326,70 +326,47 @@ function _pull_latest_content($group = NULL, $offset = 0, $limit = 10, $content_
     $groups = array($group->gid => $group);
   }
 
-  // This was the old way. I got rid of actual comments so now we can use EFQ
-  /*
   if (!empty($groups)) {
 
-    $query = "(
-    SELECT 'node' AS nc, n.nid AS id, n.created
-    FROM {discussion_group_content} dgc
-    JOIN {node} n ON dgc.eid = n.nid
-    WHERE dgc.entity_type = 'node'
-    AND dgc.gid IN (" . implode(', ', array_keys($groups)) . ")
-    )
-    UNION
-    (
-    SELECT 'comment' AS nc, c.cid AS id, c.created
-    FROM {comment} c
-    JOIN {discussion_group_content} dgc ON dgc.eid = `nid`
-    WHERE dgc.entity_type = 'node'
-    AND dgc.gid IN (" . implode(', ', array_keys($groups)) . ")
-    )
-    ORDER BY created DESC ";
+    $q = db_select('discussion_group_content', 'dgc');
+    $q->join('node', 'n', 'dgc.eid = n.nid');
+    $q->addField('n', 'created', 'node_created');
+
+    $q->fields('dgc')
+    ->fields('n', array('created'))
+    ->condition('gid', array_keys($groups), 'IN');
+
+    $q->orderBy('n.created', 'DESC');
+
+    if ($content_type != '' && is_string($content_type)) {
+      $q->condition('entity_bundle', $content_type);
+    }
 
     if ($offset == NULL && $limit == NULL) {
-      $result = db_query($query);
-      $results = $result->fetchAll();
+      //$q->count();
+      //$results = $q->execute();
+      //return $results;
 
-      return count($results);
+      $cq = $q->countQuery();
+      $r = $cq->execute()->fetchAssoc();
+      return $r['expression'];
     }
     else {
-      $query .= " LIMIT " . $offset . ", " . $limit;
+      $q->range($offset, $limit);
+    }
 
-      $result = db_query($query);
-      $results = $result->fetchAll();
+    $result = $q->execute();
+    while($gc = $result->fetchAssoc()) {
+      $func = $gc['entity_type'] . '_load';
 
-      foreach ($results as $r) {
-        $func = $r->nc . '_load';
-        $i = $func($r->id);
-        $i->__nc = $r->nc;
-
-        $items[] = $i;
+      if ($i = $func($gc['eid'])) {
+        $i->__nc = $gc['entity_type'];
+        $items[$i->nid] = $i;
       }
     }
 
 
-  }
-  */
-
-  if (!empty($groups)) {
-    $query = new EntityFieldQuery();
-    $query->entityCondition('entity_type', 'group_content');
-    $query->propertyCondition('gid', array_keys($groups), 'IN');
-
-    if ($content_type != '' && is_string($content_type)) {
-      $query->propertyCondition('entity_bundle', $content_type);
-    }
-
-    if ($offset == NULL && $limit == NULL) {
-      $query->count();
-      $results = $query->execute();
-      return $results;
-    }
-    else {
-      $query->range($offset, $limit);
-    }
-
+/*
     $query->propertyOrderBy('created', 'DESC');
     $results = $query->execute();
 
@@ -400,11 +377,11 @@ function _pull_latest_content($group = NULL, $offset = 0, $limit = 10, $content_
         $func = $gc->entity_type . '_load';
         if ($i = $func($gc->eid)) {
           $i->__nc = $gc->entity_type;
-          $items[] = $i;
+          $items[$i->nid] = $i;
         }
       }
     }
-
+*/
 
   }
 

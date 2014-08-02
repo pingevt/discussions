@@ -141,6 +141,8 @@ class Group extends Entity {
 
     if (!isset($node->nid)) return FALSE;
 
+    // TODO: if it is a disdcussion we need to check the parent node.
+
     $query = new EntityFieldQuery();
     $query->entityCondition('entity_type', 'group_content');
     $query->propertyCondition('entity_type', 'node');
