@@ -91,7 +91,7 @@ else {
 <?php if ($view_mode == 'teaser'): ?>
 
 <?php if ($zebra == 'odd'): ?><div class="row"><?php endif; ?>
-<div class="col-xs-6 ">
+<div class="col-sm-6 ">
 <div id="node-<?php print $node->nid; ?>" class="<?php print $classes; ?> clearfix"<?php print $attributes; ?>>
 
   <?php if ($display_submitted): ?>

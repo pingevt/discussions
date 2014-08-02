@@ -632,6 +632,8 @@ function discussion_preprocess_node(&$variables) {
     $reply_node->field_reply_to[LANGUAGE_NONE][0]['target_id'] = $node->nid;
     //$reply_node->body[LANGUAGE_NONE][0]['value'] = $node->nid;
 
+    module_load_include('inc', 'node', 'node.pages');
+
     $reply_form = drupal_get_form('discussion_node_form', $reply_node);
     $reply_form['title']['#access'] = FALSE;
     //$reply_form['field_reply_to']['#access'] = FALSE;
@@ -647,17 +649,6 @@ function discussion_preprocess_node(&$variables) {
     $variables['reply_form'] = $reply_form;
 
   }
-}
-
-/**
- * Implements hook_form_alter().
- */
-function discussion_form_alter(&$form, &$form_state, $form_id) {
-  $form['#validate'][] = 'pai_test_validation';
-}
-
-function pai_test_validation($form, $form_state) {
-
 }
 
 /**

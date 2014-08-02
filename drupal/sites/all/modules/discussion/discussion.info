@@ -4,6 +4,7 @@ core = 7.x
 package = LUW
 version = 7.x-0.1
 project = discussion
+dependencies[] = colorbox
 dependencies[] = date
 dependencies[] = discussion_group
 dependencies[] = entityreference
