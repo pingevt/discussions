@@ -12,7 +12,59 @@ function discussion_group_menu() {
     'file' => 'includes/group.inc',
     'type' => MENU_SUGGESTED_ITEM,
   );
+
+
+
+  $items['group/%group/memberships/%user/remove'] = array(
+    'title' => 'Group',
+    'page callback' => 'group_membership_remove_user',
+    'page arguments' => array(1, 3),
+    'access callback' => TRUE,
+    'access arguments' => array(2, 'admin'),
+    'type' => MENU_SUGGESTED_ITEM,
+  );
+
+  $items['group/%group/memberships/%user/change-role/%'] = array(
+    'title' => 'Group',
+    'page callback' => 'group_membership_change_role',
+    'page arguments' => array(1, 3, 5),
+    'access callback' => TRUE,
+    'access arguments' => array(2, 'admin'),
+    'type' => MENU_SUGGESTED_ITEM,
+  );
+
   return $items;
+}
+
+function group_membership_remove_user($group, $user) {
+  // Check to see if the user is an owner.
+  // Can't remove owner
+
+  if ($group->isOwner($user)) {
+    drupal_set_message('Cannot remove a group owner', 'warning');
+  }
+  else {
+    $membership = $group->getGroupMemebrship($user);
+    $membership->delete();
+    drupal_set_message('User removed from group', 'status');
+  }
+
+  drupal_goto();
+}
+
+function group_membership_change_role($group, $user, $rid) {
+
+  if ($group->isOwner($user)) {
+    drupal_set_message('Cannot change a group owner', 'warning');
+  }
+  else {
+    $membership = $group->getGroupMemebrship($user);
+    $membership->grid = $rid;
+    $membership->save();
+    drupal_set_message('User\'s role has been changed', 'status');
+  }
+
+  drupal_goto();
 }
 
 /**

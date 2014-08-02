@@ -18,6 +18,29 @@ class GroupMembership extends Entity {
     }
   }
 
+  function getGroup() {
+    return entity_load_single('group', $this->gid);
+  }
+
+  function createChangeRolesList() {
+    drupal_add_js(drupal_get_path('theme', 'discussions') . '/bootstrap/js/dropdown.js');
+    $group = $this->getGroup();
+    $group_roles = $group->group_roles;
+
+    $str = '';
+    $str .= '<div class="btn-group">
+    <button type="button" class="btn btn-xs btn-default dropdown-toggle" data-toggle="dropdown">
+    Change Group Role <span class="caret"></span></button>
+    <ul class="dropdown-menu" role="menu">';
+
+    foreach ($group_roles as $rid => $role) {
+      $str .= '<li>' . l('Change to ' . $role, 'group/4/memberships/' . $this->_user->uid . '/change-role/' . $rid, array('query' => array('destination' => $_GET['q']))) . '</li>';
+    }
+
+    $str .= '</ul></div>';
+
+    return $str;
+  }
 }
 
 class GroupMembershipController extends EntityAPIController {

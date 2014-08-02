@@ -11,10 +11,10 @@ define('GROUP_ROLE_MEMBER_ID', 0);
 
 class Group extends Entity {
 
-  private $group_roles = array(
+  public $group_roles = array(
     0 => 'Member',
     5 => 'Editor',
-    10 => 'Owner',
+    10 => 'Admin',
   );
 
   /**
@@ -129,6 +129,9 @@ class Group extends Entity {
     return FALSE;
   }
 
+  /**
+   * This is actual owner not group role.
+   */
   public function isOwner($user) {
     if ($this->field_owner[LANGUAGE_NONE][0]['target_id'] == $user->uid) {
       return TRUE;
@@ -297,9 +300,22 @@ function group_form_submit($form, &$form_state) {
  * Form functions to add a user to a group.
  */
 function group_add_user_by_email_form($form, &$form_state, $group) {
+
   $form = array();
 
-  $form_state['#group'] = $group;
+  if (!isset($form_state['values'])) {
+    $step = 1;
+  }
+  else {
+    $step = $form_state['values']['step'] + 1;
+  }
+  $form['step'] = array(
+    '#type' => 'hidden',
+    '#value' => $step,
+  );
+
+
+  $form_state['#group'] = !isset($form_state['#group'])? $group : $form_state['#group'];
 
   $form['fieldset'] = array(
     '#type' => 'fieldset',
@@ -309,9 +325,23 @@ function group_add_user_by_email_form($form, &$form_state, $group) {
   $form['fieldset']['email'] = array(
     '#type' => 'textfield',
     '#title' => 'Email',
-    '#description' => t('Enter and email address and the user will be added or created.'),
+    '#description' => t('Enter an email address and the user will be added or created.'),
+    '#default_value' => isset($form_state['values']['email']) ? $form_state['values']['email'] : NULL,
     '#required' => TRUE,
   );
+
+  switch ($step) {
+  case 2:
+    $form['fieldset']['username'] = array(
+      '#type' => 'textfield',
+      '#title' => 'Username',
+      '#description' => t('Please enter a user name.'),
+      '#required' => TRUE,
+    );
+    break;
+  }
+
+
 
   $form['fieldset']['actions'] = array();
 
@@ -334,30 +364,36 @@ function group_add_user_by_email_form_validate($form, &$form_state) {
 function group_add_user_by_email_form_submit($form, &$form_state) {
   $group = $form_state['#group'];
 
-  // First check to see if user exists.
-  if ($user = user_load_by_mail($form_state['values']['email'])) {
-    // If user exists, check to see if user is alreadu in the group.
-    if ($group->isUserMember($user->uid)) {
-      drupal_set_message('User already in group.');
+  if ($form_state['values']['step'] == 1) {
+    // First check to see if user exists.
+    if ($user = user_load_by_mail($form_state['values']['email'])) {
+      // If user exists, check to see if user is alreadu in the group.
+      if ($group->isUserMember($user->uid)) {
+        drupal_set_message('User already in group.');
+      }
+      else {
+
+        $gm = entity_create('group_membership', array());
+        $gm->gid = $group->gid;
+        $gm->grid = 0;
+        $gm->uid = $user->uid;
+
+        $gm->save();
+
+        drupal_set_message('User added');
+      }
     }
+    // If not, create and send an email.
     else {
-
-      $gm = entity_create('group_membership', array());
-      $gm->gid = $group->gid;
-      $gm->grid = 0;
-      $gm->uid = $user->uid;
-
-      $gm->save();
-
-      drupal_set_message('User added');
+      $form_state['rebuild'] = TRUE;
     }
   }
-  // If not, create and send an email.
-  else {
+  elseif ($form_state['values']['step'] == 2) {
+
     $password = user_password(8);
 
     $fields = array(
-      'name' => 'username',
+      'name' => $form_state['values']['username'],
       'mail' => $form_state['values']['email'],
       'pass' => $password,
       'status' => 1,

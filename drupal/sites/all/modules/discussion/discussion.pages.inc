@@ -109,8 +109,6 @@ function discussion_group_membership_page_view($group) {
   // Set Breadcrumbs
   drupal_set_breadcrumb($breadcrumb);
 
-
-
   // Add user
   $build['add_user'] = drupal_get_form('group_add_user_by_email_form', $group);
 
@@ -119,7 +117,7 @@ function discussion_group_membership_page_view($group) {
 
   $build['members_table'] = array(
     '#theme' => 'table',
-    '#header' => array('Username', 'Email', 'Group Role', 'Operations'),
+    '#header' => array('Username', 'Email', 'Group Role', array('data' => 'Operations', 'colspan' => 2)),
     '#rows' => array(),
     '#empty' => 'There are no users in this group',
   );
@@ -129,7 +127,8 @@ function discussion_group_membership_page_view($group) {
       $member->_user->name,
       $member->_user->mail,
       $group->getUsersRole($member),
-      '',
+      l('Remove', 'group/' . $group->gid . '/memberships/' . $member->_user->uid . '/remove', array('query' => array('destination' => $_GET['q']))),
+      $member->createChangeRolesList(),
     );
   }
 
