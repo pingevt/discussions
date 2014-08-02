@@ -555,9 +555,6 @@ function discussion_preprocess_page(&$variables) {
         'event' => array(
           'data' => l('Create New Event', 'group/' . $group->gid . '/event/add'),
         ),
-        'image' => array(
-          'data' => l('Upload New Image', 'group/' . $group->gid . '/image/add'),
-        ),
         'gallery' => array(
           'data' => l('Start New Gallery', 'group/' . $group->gid . '/gallery/add'),
         ),
@@ -572,7 +569,6 @@ function discussion_preprocess_page(&$variables) {
           'discussions' => l('Discussions', 'group/' . $group->gid . '/discussions'),
           'events' => l('Events', 'group/' . $group->gid . '/events'),
           'galleries' => l('Galleries', 'group/' . $group->gid . '/galleries'),
-          'images' => l('Images', 'group/' . $group->gid . '/images'),
         ),
         '#title' => t('Content'),
       );
