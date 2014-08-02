@@ -8,3 +8,4 @@ version = "7.x-0.1"
 files[] = includes/group.inc
 files[] = includes/group_content.inc
 files[] = includes/group_membership.inc
+files[] = includes/EntityFieldQueryByGroup.inc

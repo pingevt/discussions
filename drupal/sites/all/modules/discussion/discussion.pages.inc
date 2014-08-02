@@ -96,6 +96,7 @@ function discussion_group_dashboard_page_view($group) {
   return _latest_feed_landing_page($group, NULL);
 }
 
+
 function discussion_group_membership_page_view($group) {
   $build = array();
   drupal_set_title($group->label() . ' Group Memberships');
@@ -135,6 +136,7 @@ function discussion_group_membership_page_view($group) {
   return $build;
 }
 
+
 function discussion_group_discussion_landing_page_view($group) {
   drupal_set_title(t($group->label() . ' Discussions'));
 
@@ -152,6 +154,7 @@ function discussion_group_discussion_landing_page_view($group) {
 
 function discussion_group_event_landing_page_view($group) {
   drupal_set_title(t($group->label() . ' Events'));
+  $build = array();
 
   // Build Breadcrumbs
   $breadcrumb = array();
@@ -162,7 +165,54 @@ function discussion_group_event_landing_page_view($group) {
   // Set Breadcrumbs
   drupal_set_breadcrumb($breadcrumb);
 
-  return _latest_feed_landing_page($group, 'event');
+  $items = $group->getGroupEvents();
+
+  foreach ($items as $item) {
+    $content = node_view($item, 'teaser', $item->language);
+
+    $content += array(
+      '#theme' => 'entity',
+      '#entity_type' => $item->type,
+      '#entity' => $item,
+      '#view_mode' => 'teaser',
+      '#language' => $item->language,
+      '#page' => NULL,
+    );
+
+    $build['items'][] = $content;
+  }
+
+  return $build;
+}
+
+function discussion_group_gallery_landing_page_view($group) {
+  drupal_set_title(t($group->label() . ' Galleries'));
+  $build = array();
+
+  // Build Breadcrumbs
+  $breadcrumb = array();
+  $breadcrumb[] = l('Dashboard', '<front>');
+  $group_uri = $group->uri();
+  $breadcrumb[] = l($group->label(), $group_uri['path'], $group_uri['options']);
+
+  $items = $group->getGroupGalleries();
+
+  foreach ($items as $item) {
+    $content = node_view($item, 'teaser', $item->language);
+
+    $content += array(
+      '#theme' => 'entity',
+      '#entity_type' => $item->type,
+      '#entity' => $item,
+      '#view_mode' => 'teaser',
+      '#language' => $item->language,
+      '#page' => NULL,
+    );
+
+    $build['items'][] = $content;
+  }
+
+  return $build;
 }
 
 function _latest_feed_landing_page($group, $content_type = NULL) {
@@ -328,6 +378,66 @@ function discussion_group_event_page_view($group, $node) {
   $breadcrumb[] = l('Dashboard', '<front>');
   $breadcrumb[] = l($group->label() . ' Dashboard', 'group/' . $group->gid);
   $breadcrumb[] = l('Events', 'group/' . $group->gid . '/events');
+
+  // Set Breadcrumbs
+  drupal_set_breadcrumb($breadcrumb);
+
+  $build = array();
+  $view_mode = 'full';
+  $langcode = NULL;
+
+  // Populate $node->content with a render() array.
+  node_build_content($node, $view_mode, $langcode);
+
+  $build['node'] = $node->content;
+  // We don't need duplicate rendering info in node->content.
+  unset($node->content);
+
+  $build['node'] += array(
+    '#theme' => 'node',
+    '#node' => $node,
+    '#view_mode' => $view_mode,
+    '#language' => $langcode,
+  );
+
+  // Allow modules to modify the structured node.
+  $type = 'node';
+  drupal_alter(array('node_view', 'entity_view'), $build['node'], $type);
+
+  return $build;
+}
+
+
+
+function discussion_group_gallery_add($group) {
+  module_load_include('inc', 'node', 'node.pages');
+  global $user;
+  $build = array();
+
+  $node = new StdClass();
+  $node->uid = $user->uid;
+  $node->name = isset($user->name) ? $user->name : '';
+  $node->type = 'gallery';
+  $node->language = LANGUAGE_NONE;
+
+  $form = drupal_get_form('event_node_form', $node);
+
+  $build = $form;
+
+  return $build;
+}
+
+function discussion_group_gallery_page_view($group, $node) {
+
+  global $user;
+
+  drupal_set_title($node->title);
+
+  // Build Breadcrumbs
+  $breadcrumb = array();
+  $breadcrumb[] = l('Dashboard', '<front>');
+  $breadcrumb[] = l($group->label() . ' Dashboard', 'group/' . $group->gid);
+  $breadcrumb[] = l('Galleries', 'group/' . $group->gid . '/galleries');
 
   // Set Breadcrumbs
   drupal_set_breadcrumb($breadcrumb);

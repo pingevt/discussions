@@ -159,6 +159,40 @@ class Group extends Entity {
     }
 
   }
+
+  public function getGroupEvents() {
+    $items = array();
+
+    $q = new EntityFieldQueryByGroup(array($this->gid));
+    $q->entityCondition('entity_type', 'node');
+    $q->entityCondition('bundle', 'event');
+    $q->fieldOrderBy('field_dates', 'value', 'DESC');
+
+    $r = $q->execute();
+
+    if (isset($r['node'])) {
+      $items = node_load_multiple(array_keys($r['node']));
+    }
+
+    return $items;
+  }
+
+  public function getGroupGalleries() {
+    $items = array();
+
+    $q = new EntityFieldQueryByGroup(array($this->gid));
+    $q->entityCondition('entity_type', 'node');
+    $q->entityCondition('bundle', 'gallery');
+    $q->propertyOrderBy('title', 'ASC');
+
+    $r = $q->execute();
+
+    if (isset($r['node'])) {
+      $items = node_load_multiple(array_keys($r['node']));
+    }
+
+    return $items;
+  }
 }
 
 class GroupController extends EntityAPIController {

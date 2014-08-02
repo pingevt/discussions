@@ -302,6 +302,9 @@ function group_membership_entity_access() {
 function discussion_group_form_alter(&$form, &$form_state, $form_id) {
 
   if (strpos($form_id, '_node_form') !== FALSE && in_array($form['#bundle'], array('gallery', 'image', 'event', 'discussion'))) {
+
+    form_load_include($form_state, 'inc', 'node', 'node.pages');
+
     $groups = Group::getCurrentUserGroups();
     $required = TRUE;
 
