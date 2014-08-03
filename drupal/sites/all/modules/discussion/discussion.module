@@ -217,6 +217,37 @@ function discussion_menu_alter(&$items) {
   //unset($items['node/%node']);
 }
 
+/**
+ * Implements hook_init().
+ */
+function discussion_init() {
+  $q_ex = explode('/', $_GET['q']);
+
+  if ($q_ex[0] == 'node') {
+    if (isset($q_ex[1]) && is_numeric($q_ex[1]) && (!isset($q_ex[2]) || $q_ex[2] == 'view')) {
+      $node = menu_get_object('node', 1);
+      $type = node_type_get_name($node);
+
+      $node_groups = GroupContent::getNodeGroupOwners($node);
+      $users_groups = Group::getCurrentUserGroups();
+
+      foreach ($node_groups as $group) {
+        if (in_array($group->gid, array_keys($users_groups))) {
+          $url_group = $group;
+          break;
+        }
+      }
+
+      if (!empty($url_group)) {
+        drupal_goto('group/' . $url_group->gid . '/' . $type . '/' . $node->nid);
+      }
+      else {
+        drupal_goto();
+      }
+    }
+  }
+}
+
 function group_admin() {
   $item = menu_get_item();
   $content = system_admin_menu_block($item);
