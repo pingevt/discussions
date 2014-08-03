@@ -401,6 +401,8 @@ function discussion_group_form_alter(&$form, &$form_state, $form_id) {
       '#title' => t('Group Assignment'),
       '#weight' => -20,
       '#tree' => TRUE,
+      '#collapsible' => TRUE,
+      '#collapsed' => TRUE,
     );
 
     $form['group_assignment']['groups'] = array(
@@ -420,7 +422,6 @@ function discussion_group_form_alter(&$form, &$form_state, $form_id) {
     $form['actions']['submit']['#submit'][] = 'discussion_group_node_form_submit';
 
   }
-
 }
 
 function discussion_group_node_form_submit(&$form, &$form_state) {

@@ -57,6 +57,38 @@ function discussions_preprocess_node(&$variables) {
   }
 }
 
+function discussions_form_alter(&$form, &$form_state, $form_id) {
+  _add_bootstrap_form_control($form);
+}
+
+function _add_bootstrap_form_control(&$element) {
+  $children = element_children($element, TRUE);
+
+  if (count($children) > 0) {
+    foreach ($children as $child_id) {
+
+      if (isset($element[$child_id]['#type'])) {
+
+        switch ($element[$child_id]['#type']) {
+        case 'textarea':
+        case 'textfield':
+        case 'text_format':
+        case 'date':
+        case 'select':
+        case 'password':
+        case 'password_confirm':
+        case 'submit':
+          $element[$child_id]['#attributes']['class'][] = 'form-control';
+          break;
+        }
+      }
+
+      // Update children
+      _add_bootstrap_form_control($element[$child_id]);
+    }
+  }
+}
+
 /**
  * Display the list of available node types for node creation.
  */
@@ -191,3 +223,80 @@ function discussions_node_view_alter(&$build) {
   }
   //dpm($build);
 }
+
+function discussions_menu_local_tasks(&$variables) {
+  $output = '';
+
+  if (!empty($variables['primary'])) {
+    $variables['primary']['#prefix'] = '<h2 class="element-invisible">' . t('Primary tabs') . '</h2>';
+    $variables['primary']['#prefix'] .= '<ul class="nav nav-tabs nav-primary">';
+    $variables['primary']['#suffix'] = '</ul>';
+    $output .= drupal_render($variables['primary']);
+  }
+  if (!empty($variables['secondary'])) {
+    $variables['secondary']['#prefix'] = '<h2 class="element-invisible">' . t('Secondary tabs') . '</h2>';
+    $variables['secondary']['#prefix'] .= '<ul class="nav nav-pills nav-secondary">';
+    $variables['secondary']['#suffix'] = '</ul>';
+    $output .= drupal_render($variables['secondary']);
+  }
+
+  return $output;
+}
+
+function discussions_button($variables) {
+  if ($variables['element']['#button_type'] == 'submit') {
+    if ($variables['element']['#value'] == 'Save') {
+      $variables['element']['#attributes']['class'][] = 'btn';
+      $variables['element']['#attributes']['class'][] = 'btn-primary';
+    }
+    if ($variables['element']['#value'] == 'Delete') {
+      $variables['element']['#attributes']['class'][] = 'btn';
+      $variables['element']['#attributes']['class'][] = 'btn-warning';
+    }
+  }
+
+  $element = $variables['element'];
+  $element['#attributes']['type'] = 'submit';
+  element_set_attributes($element, array('id', 'name', 'value'));
+
+  $element['#attributes']['class'][] = 'form-' . $element['#button_type'];
+  if (!empty($element['#attributes']['disabled'])) {
+    $element['#attributes']['class'][] = 'form-button-disabled';
+  }
+
+
+  if ($variables['element']['#button_type'] == 'submit') {
+    return '<div class="col-sm-4"><input' . drupal_attributes($element['#attributes']) . ' /></div>';
+  }
+  else {
+    return '<input' . drupal_attributes($element['#attributes']) . ' />';
+  }
+}
+
+function discussions_menu_alter(&$items) {
+  // Remove view from local tasks.
+  $items['node/%node/view']['type'] = MENU_NORMAL_ITEM;
+}
+
+function discussions_image($variables) {
+  $attributes = $variables['attributes'];
+  $attributes['src'] = file_create_url($variables['path']);
+
+  foreach (array('alt', 'title') as $key) {
+
+    if (isset($variables[$key])) {
+      $attributes[$key] = $variables[$key];
+    }
+  }
+
+  if (isset($attributes['width'])) {
+    unset($attributes['width']);
+  }
+
+  if (isset($attributes['height'])) {
+    unset($attributes['height']);
+  }
+
+  return '<img' . drupal_attributes($attributes) . ' />';
+}
+

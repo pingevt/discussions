@@ -123,13 +123,15 @@ function discussion_group_membership_page_view($group) {
   );
 
   foreach ($members as $member) {
-    $build['members_table']['#rows'][] = array(
-      $member->_user->name,
-      $member->_user->mail,
-      $group->getUsersRole($member),
-      l('Remove', 'group/' . $group->gid . '/memberships/' . $member->_user->uid . '/remove', array('query' => array('destination' => $_GET['q']))),
-      $member->createChangeRolesList(),
-    );
+    if (is_object($member->_user)) {
+      $build['members_table']['#rows'][] = array(
+        $member->_user->name,
+        $member->_user->mail,
+        $group->getUsersRole($member),
+        l('Remove', 'group/' . $group->gid . '/memberships/' . $member->_user->uid . '/remove', array('query' => array('destination' => $_GET['q']))),
+        $member->createChangeRolesList(),
+      );
+    }
   }
 
   return $build;
