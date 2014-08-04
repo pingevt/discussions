@@ -1,5 +1,10 @@
 <?php
 
+/**
+ * @file
+ * EntityFieldQueryByGroup.inc
+ */
+
 class EntityFieldQueryByGroup extends EntityFieldQuery {
   public $groupConditions = array();
 

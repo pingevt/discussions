@@ -1,4 +1,8 @@
 <?php
+/**
+ * @file
+ * group_membership.inc
+ */
 
 class GroupMembership extends Entity {
 
@@ -34,7 +38,7 @@ class GroupMembership extends Entity {
     <ul class="dropdown-menu" role="menu">';
 
     foreach ($group_roles as $rid => $role) {
-      $str .= '<li>' . l('Change to ' . $role, 'group/4/memberships/' . $this->_user->uid . '/change-role/' . $rid, array('query' => array('destination' => $_GET['q']))) . '</li>';
+      $str .= '<li>' . l(t('Change to ' . $role), 'group/4/memberships/' . $this->_user->uid . '/change-role/' . $rid, array('query' => array('destination' => $_GET['q']))) . '</li>';
     }
 
     $str .= '</ul></div>';

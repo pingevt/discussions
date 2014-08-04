@@ -1,4 +1,8 @@
 <?php
+/**
+ * @file
+ * discussion_group.module
+ */
 
 /**
  * Implements hook_menu().
@@ -41,12 +45,12 @@ function group_membership_remove_user($group, $user) {
   // Can't remove owner
 
   if ($group->isOwner($user)) {
-    drupal_set_message('Cannot remove a group owner', 'warning');
+    drupal_set_message(t('Cannot remove a group owner'), 'warning');
   }
   else {
     $membership = $group->getGroupMemebrship($user);
     $membership->delete();
-    drupal_set_message('User removed from group', 'status');
+    drupal_set_message(t('User removed from group'), 'status');
   }
 
   drupal_goto();
@@ -55,13 +59,13 @@ function group_membership_remove_user($group, $user) {
 function group_membership_change_role($group, $user, $rid) {
 
   if ($group->isOwner($user)) {
-    drupal_set_message('Cannot change a group owner', 'warning');
+    drupal_set_message(t('Cannot change a group owner'), 'warning');
   }
   else {
     $membership = $group->getGroupMemebrship($user);
     $membership->grid = $rid;
     $membership->save();
-    drupal_set_message('User\'s role has been changed', 'status');
+    drupal_set_message(t('User\'s role has been changed'), 'status');
   }
 
   drupal_goto();

@@ -15,7 +15,7 @@ function discussion_login_page_view() {
 function discussion_dashboard_page_view() {
   global $user;
 
-  drupal_set_title('Dashboard');
+  drupal_set_title(t('Dashboard'));
 
   $groups = Group::getCurrentUserGroups();
 
@@ -88,7 +88,7 @@ function discussion_group_dashboard_page_view($group) {
 
   // Build Breadcrumbs
   $breadcrumb = array();
-  $breadcrumb[] = l('Dashboard', '<front>');
+  $breadcrumb[] = l(t('Dashboard'), '<front>');
 
   // Set Breadcrumbs
   drupal_set_breadcrumb($breadcrumb);
@@ -103,8 +103,8 @@ function discussion_group_membership_page_view($group) {
 
   // Build Breadcrumbs
   $breadcrumb = array();
-  $breadcrumb[] = l('Dashboard', '<front>');
-  $breadcrumb[] = l($group->label() . ' Dashboard', 'group/' . $group->gid);
+  $breadcrumb[] = l(t('Dashboard'), '<front>');
+  $breadcrumb[] = l(t($group->label() . ' Dashboard'), 'group/' . $group->gid);
 
   // Set Breadcrumbs
   drupal_set_breadcrumb($breadcrumb);
@@ -128,7 +128,7 @@ function discussion_group_membership_page_view($group) {
         $member->_user->name,
         $member->_user->mail,
         $group->getUsersRole($member),
-        l('Remove', 'group/' . $group->gid . '/memberships/' . $member->_user->uid . '/remove', array('query' => array('destination' => $_GET['q']))),
+        l(t('Remove'), 'group/' . $group->gid . '/memberships/' . $member->_user->uid . '/remove', array('query' => array('destination' => $_GET['q']))),
         $member->createChangeRolesList(),
       );
     }
@@ -143,7 +143,7 @@ function discussion_group_discussion_landing_page_view($group) {
 
   // Build Breadcrumbs
   $breadcrumb = array();
-  $breadcrumb[] = l('Dashboard', '<front>');
+  $breadcrumb[] = l(t('Dashboard'), '<front>');
   $group_uri = $group->uri();
   $breadcrumb[] = l($group->label(), $group_uri['path'], $group_uri['options']);
 
@@ -159,7 +159,7 @@ function discussion_group_event_landing_page_view($group) {
 
   // Build Breadcrumbs
   $breadcrumb = array();
-  $breadcrumb[] = l('Dashboard', '<front>');
+  $breadcrumb[] = l(t('Dashboard'), '<front>');
   $group_uri = $group->uri();
   $breadcrumb[] = l($group->label(), $group_uri['path'], $group_uri['options']);
 
@@ -192,7 +192,7 @@ function discussion_group_gallery_landing_page_view($group) {
 
   // Build Breadcrumbs
   $breadcrumb = array();
-  $breadcrumb[] = l('Dashboard', '<front>');
+  $breadcrumb[] = l(t('Dashboard'), '<front>');
   $group_uri = $group->uri();
   $breadcrumb[] = l($group->label(), $group_uri['path'], $group_uri['options']);
 
@@ -276,7 +276,7 @@ function discussion_group_discussion_add($group) {
   global $user;
   $build = array();
 
-  $node = new StdClass();
+  $node = new stdClass();
   $node->uid = $user->uid;
   $node->name = isset($user->name) ? $user->name : '';
   $node->type = 'discussion';
@@ -302,9 +302,9 @@ function discussion_group_discussion_page_view($group, $node) {
 
   // Build Breadcrumbs
   $breadcrumb = array();
-  $breadcrumb[] = l('Dashboard', '<front>');
-  $breadcrumb[] = l($group->label() . ' Dashboard', 'group/' . $group->gid);
-  $breadcrumb[] = l('Discussions', 'group/' . $group->gid . '/discussions');
+  $breadcrumb[] = l(t('Dashboard'), '<front>');
+  $breadcrumb[] = l(t($group->label() . ' Dashboard'), 'group/' . $group->gid);
+  $breadcrumb[] = l(t('Discussions'), 'group/' . $group->gid . '/discussions');
 
   // Set Breadcrumbs
   drupal_set_breadcrumb($breadcrumb);
@@ -347,7 +347,7 @@ function discussion_group_event_add($group) {
   global $user;
   $build = array();
 
-  $node = new StdClass();
+  $node = new stdClass();
   $node->uid = $user->uid;
   $node->name = isset($user->name) ? $user->name : '';
   $node->type = 'event';
@@ -376,9 +376,9 @@ function discussion_group_event_page_view($group, $node) {
 
   // Build Breadcrumbs
   $breadcrumb = array();
-  $breadcrumb[] = l('Dashboard', '<front>');
-  $breadcrumb[] = l($group->label() . ' Dashboard', 'group/' . $group->gid);
-  $breadcrumb[] = l('Events', 'group/' . $group->gid . '/events');
+  $breadcrumb[] = l(t('Dashboard'), '<front>');
+  $breadcrumb[] = l(t($group->label() . ' Dashboard'), 'group/' . $group->gid);
+  $breadcrumb[] = l(t('Events'), 'group/' . $group->gid . '/events');
 
   // Set Breadcrumbs
   drupal_set_breadcrumb($breadcrumb);
@@ -415,7 +415,7 @@ function discussion_group_gallery_add($group) {
   global $user;
   $build = array();
 
-  $node = new StdClass();
+  $node = new stdClass();
   $node->uid = $user->uid;
   $node->name = isset($user->name) ? $user->name : '';
   $node->type = 'gallery';
@@ -436,9 +436,9 @@ function discussion_group_gallery_page_view($group, $node) {
 
   // Build Breadcrumbs
   $breadcrumb = array();
-  $breadcrumb[] = l('Dashboard', '<front>');
-  $breadcrumb[] = l($group->label() . ' Dashboard', 'group/' . $group->gid);
-  $breadcrumb[] = l('Galleries', 'group/' . $group->gid . '/galleries');
+  $breadcrumb[] = l(t('Dashboard'), '<front>');
+  $breadcrumb[] = l(t($group->label() . ' Dashboard'), 'group/' . $group->gid);
+  $breadcrumb[] = l(t('Galleries'), 'group/' . $group->gid . '/galleries');
 
   // Set Breadcrumbs
   drupal_set_breadcrumb($breadcrumb);

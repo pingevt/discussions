@@ -1,4 +1,8 @@
 <?php
+/**
+ * @file
+ * group.inc
+ */
 
 /*
 define('GROUP_ROLE_OWNER_LABEL', 'Owner');
@@ -255,9 +259,11 @@ function group_form($form, &$form_state, $entity, $op = 'edit', $entity_type = N
       $property = $property_info['properties'][$label_key];
     }
 
+    $label_key = isset($property['label']) ? $property['label'] : t('Name');
+
     $form[$label_key] = array(
       '#type' => 'textfield',
-      '#title' => isset($property['label']) ? $property['label'] : t('Name'),
+      '#title' => check_plain($label_key),
       '#required' => isset($property['required']) ? $property['required'] : TRUE,
       '#default_value' => isset($entity->$label_key) ? $entity->$label_key : NULL,
     );

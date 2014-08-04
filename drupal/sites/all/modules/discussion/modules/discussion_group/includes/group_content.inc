@@ -1,4 +1,8 @@
 <?php
+/**
+ * @file
+ * group_content.inc
+ */
 
 class GroupContent extends Entity {
   public $gid;

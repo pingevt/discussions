@@ -1,4 +1,8 @@
 <?php
+/**
+ * @file
+ * discussion.module
+ */
 
 define('DISCUSSION_PATH', drupal_get_path('module', 'discussion'));
 
@@ -155,7 +159,7 @@ function discussion_menu() {
   );
 
   // Super admin pages
-  //admin/structure/discussion/group-membership/membership/manage
+  // admin/structure/discussion/group-membership/membership/manage
   $items['admin/groups'] = array(
     'title' => 'Discussion admin',
     'description' => 'Discussion admin',
@@ -165,7 +169,8 @@ function discussion_menu() {
     'file' => 'system.admin.inc',
   );
 
-  /*$items['admin/groups/group-membership'] = array(
+  /*
+  $items['admin/groups/group-membership'] = array(
     'title' => 'Group membership',
     'description' => 'Group membership entity admin',
     'page callback' => 'system_admin_menu_block_page',
@@ -173,7 +178,8 @@ function discussion_menu() {
     'file path' => 'modules/system',
     'file' => 'system.admin.inc',
     'weight' => 2,
-  );*/
+  );
+  */
 
   $items['admin/groups/group-membership/manage/%group_membership_bundle'] = array(
     'title' => 'Group membership manage',
@@ -185,7 +191,8 @@ function discussion_menu() {
     'weight' => 2,
   );
 
-  /*$items['admin/groups/group-content'] = array(
+  /*
+  $items['admin/groups/group-content'] = array(
     'title' => 'Group content',
     'description' => 'Group content entity admin',
     'page callback' => 'system_admin_menu_block_page',
@@ -193,7 +200,8 @@ function discussion_menu() {
     'file path' => 'modules/system',
     'file' => 'system.admin.inc',
     'weight' => 3,
-  );*/
+  );
+  */
 
   $items['admin/groups/group-content/manage/%group_content_bundle'] = array(
     'title' => 'Group content manage',
@@ -248,6 +256,9 @@ function discussion_init() {
   }
 }
 
+/**
+ * Implements hook_admin().
+ */
 function group_admin() {
   $item = menu_get_item();
   $content = system_admin_menu_block($item);
@@ -265,7 +276,7 @@ function group_admin() {
   foreach (array('group_membership', 'group_content') as $entity_type) {
     $entity_info = entity_get_info($entity_type);
 
-    foreach($entity_info['bundles'] as $bundle_type => $bundle_info) {
+    foreach ($entity_info['bundles'] as $bundle_type => $bundle_info) {
       $row = array();
       $row[] = $entity_type;
       $row[] = $bundle_type;
@@ -291,6 +302,9 @@ function group_admin() {
   return $build;
 }
 
+/**
+ * Implements hook_content_access().
+ */
 function group_content_access($group, $node, $op) {
   global $user;
 
@@ -324,7 +338,6 @@ function group_content_access($group, $node, $op) {
     break;
   }
 
-  //
   return FALSE;
 }
 
@@ -414,7 +427,7 @@ function _pull_latest_content($group = NULL, $offset = 0, $limit = 10, $content_
     }
 
     $result = $q->execute();
-    while($gc = $result->fetchAssoc()) {
+    while ($gc = $result->fetchAssoc()) {
       $func = $gc['entity_type'] . '_load';
 
       if ($i = $func($gc['eid'])) {
@@ -514,7 +527,7 @@ function current_events_callback() {
 
   $result = $q->execute();
 
-  while($record = $result->fetchAssoc()) {
+  while ($record = $result->fetchAssoc()) {
     $node = node_load($record['nid']);
 
     $output[] = array(
@@ -581,7 +594,7 @@ function discussion_preprocess_page(&$variables) {
     );
 
   }
-  elseif($q[0] == 'group') {
+  elseif ($q[0] == 'group') {
     $group = discussion_get_current_group();
 
     // Setup add content block.
@@ -589,25 +602,25 @@ function discussion_preprocess_page(&$variables) {
       '#theme' => 'item_list',
       '#items' => array(
         'discussion' => array(
-          'data' => l('Start New Discussion', 'group/' . $group->gid . '/discussion/add'),
+          'data' => l(t('Start New Discussion'), 'group/' . $group->gid . '/discussion/add'),
         ),
         'event' => array(
-          'data' => l('Create New Event', 'group/' . $group->gid . '/event/add'),
+          'data' => l(t('Create New Event'), 'group/' . $group->gid . '/event/add'),
         ),
         'gallery' => array(
-          'data' => l('Start New Gallery', 'group/' . $group->gid . '/gallery/add'),
+          'data' => l(t('Start New Gallery'), 'group/' . $group->gid . '/gallery/add'),
         ),
       ),
-      '#title' => t('Add content'),
+      '#title' => t(t('Add content')),
     );
 
     if (!empty($group)) {
       $sidebar['group_content'] = array(
         '#theme' => 'item_list',
         '#items' => array(
-          'discussions' => l('Discussions', 'group/' . $group->gid . '/discussions'),
-          'events' => l('Events', 'group/' . $group->gid . '/events'),
-          'galleries' => l('Galleries', 'group/' . $group->gid . '/galleries'),
+          'discussions' => l(t('Discussions'), 'group/' . $group->gid . '/discussions'),
+          'events' => l(t('Events'), 'group/' . $group->gid . '/events'),
+          'galleries' => l(t('Galleries'), 'group/' . $group->gid . '/galleries'),
         ),
         '#title' => t('Content'),
       );
@@ -616,7 +629,7 @@ function discussion_preprocess_page(&$variables) {
         $sidebar['group_manage'] = array(
           '#theme' => 'item_list',
           '#items' => array(
-            'discussions' => l('Membership', 'group/' . $group->gid . '/memberships'),
+            'discussions' => l(t('Membership'), 'group/' . $group->gid . '/memberships'),
           ),
           '#title' => t('Group Administration'),
         );
@@ -654,7 +667,7 @@ function discussion_preprocess_node(&$variables) {
     $node = $variables['node'];
 
     // Add in reply form
-    $reply_node = new StdClass();
+    $reply_node = new stdClass();
     $reply_node->uid = $user->uid;
     $reply_node->name = isset($user->name) ? $user->name : '';
     $reply_node->type = 'discussion';
@@ -708,11 +721,12 @@ function discussion_theme_registry_alter(&$theme_registry) {
       $theme_registry[$h]['theme paths'] = array();
     }
     //Shift this module's directory to the top of the theme path list
-    if(is_array($theme_registry[$h]['theme paths'])) {
+    if (is_array($theme_registry[$h]['theme paths'])) {
       $first_element = array_shift($theme_registry[$h]['theme paths']);
       if ($first_element) {
         array_unshift($theme_registry[$h]['theme paths'], $first_element, DISCUSSION_PATH);
-      } else {
+      }
+      else {
         array_unshift($theme_registry[$h]['theme paths'], DISCUSSION_PATH);
       }
     }

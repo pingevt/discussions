@@ -1,4 +1,8 @@
 <?php
+/**
+ * @file
+ * discussion_group.install
+ */
 
 function _discussion_group_table() {
   return array(

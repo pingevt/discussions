@@ -1,4 +1,8 @@
 <?php
+/**
+ * @file
+ * discussion_group.rules.inc
+ */
 
 function discussion_group_rules_action_info() {
   $actions = array(
