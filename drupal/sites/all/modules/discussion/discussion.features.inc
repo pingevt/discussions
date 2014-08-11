@@ -34,6 +34,29 @@ function discussion_image_default_styles() {
     ),
   );
 
+  // Exported image style: gallery_mini.
+  $styles['gallery_mini'] = array(
+    'name' => 'gallery_mini',
+    'label' => 'Gallery mini',
+    'effects' => array(
+      7 => array(
+        'label' => 'Scale and crop',
+        'help' => 'Scale and crop will maintain the aspect-ratio of the original image, then crop the larger dimension. This is most useful for creating perfectly square thumbnails without stretching the image.',
+        'effect callback' => 'image_scale_and_crop_effect',
+        'dimensions callback' => 'image_resize_dimensions',
+        'form callback' => 'image_resize_form',
+        'summary theme' => 'image_resize_summary',
+        'module' => 'image',
+        'name' => 'image_scale_and_crop',
+        'data' => array(
+          'width' => 25,
+          'height' => 25,
+        ),
+        'weight' => 1,
+      ),
+    ),
+  );
+
   // Exported image style: gallery_thumbnail.
   $styles['gallery_thumbnail'] = array(
     'name' => 'gallery_thumbnail',
@@ -182,5 +205,6 @@ function discussion_node_info() {
       'help' => '',
     ),
   );
+  drupal_alter('node_info', $items);
   return $items;
 }
