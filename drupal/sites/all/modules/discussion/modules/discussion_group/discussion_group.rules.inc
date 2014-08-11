@@ -32,7 +32,7 @@ function discussion_group_rules_action_info() {
 
 function discussion_group_list_users_in_group($node) {
   $users = array();
-
+/*
   $groups = GroupContent::getNodeGroupOwners($node);
   foreach ($groups as $group) {
     $memberships = $group->getGroupMembers();
@@ -41,6 +41,6 @@ function discussion_group_list_users_in_group($node) {
       $users[$membership->_user->uid] = $membership->_user;
     }
   }
-
-return array('users' => $users);
+*/
+  return array('users' => $users);
 }

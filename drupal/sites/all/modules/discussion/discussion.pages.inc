@@ -167,21 +167,27 @@ function discussion_group_event_landing_page_view($group) {
   drupal_set_breadcrumb($breadcrumb);
 
   $items = $group->getGroupEvents();
+  if (count($items) > 0) {
+    foreach ($items as $item) {
+      $content = node_view($item, 'teaser', $item->language);
 
-  foreach ($items as $item) {
-    $content = node_view($item, 'teaser', $item->language);
+      $content += array(
+        '#theme' => 'entity',
+        '#entity_type' => $item->type,
+        '#entity' => $item,
+        '#view_mode' => 'teaser',
+        '#language' => $item->language,
+        '#page' => NULL,
+      );
 
-    $content += array(
-      '#theme' => 'entity',
-      '#entity_type' => $item->type,
-      '#entity' => $item,
-      '#view_mode' => 'teaser',
-      '#language' => $item->language,
-      '#page' => NULL,
-    );
-
-    $build['items'][] = $content;
+      $build['items'][] = $content;
+    }
   }
+  else {
+    $build['#markup'] = '<p class="text-center">There are no items in this list</p>';
+  }
+
+
 
   return $build;
 }
@@ -198,19 +204,24 @@ function discussion_group_gallery_landing_page_view($group) {
 
   $items = $group->getGroupGalleries();
 
-  foreach ($items as $item) {
-    $content = node_view($item, 'teaser', $item->language);
+  if (count($items) > 0) {
+    foreach ($items as $item) {
+      $content = node_view($item, 'teaser', $item->language);
 
-    $content += array(
-      '#theme' => 'entity',
-      '#entity_type' => $item->type,
-      '#entity' => $item,
-      '#view_mode' => 'teaser',
-      '#language' => $item->language,
-      '#page' => NULL,
-    );
+      $content += array(
+        '#theme' => 'entity',
+        '#entity_type' => $item->type,
+        '#entity' => $item,
+        '#view_mode' => 'teaser',
+        '#language' => $item->language,
+        '#page' => NULL,
+      );
 
-    $build['items'][] = $content;
+      $build['items'][] = $content;
+    }
+  }
+  else {
+    $build['#markup'] = '<p class="text-center">There are no items in this list</p>';
   }
 
   return $build;
@@ -234,37 +245,42 @@ function _latest_feed_landing_page($group, $content_type = NULL) {
 
   $items = _pull_latest_content($group, $offset, $page_count, $content_type);
 
-  foreach ($items as $item) {
+  if ($count > 0) {
+    foreach ($items as $item) {
 
-    $entity_type = $item->__nc;
+      $entity_type = $item->__nc;
 
-    if ($entity_type == 'node') {
-      $content = node_view($item, 'latest_feed', $item->language);
+      if ($entity_type == 'node') {
+        $content = node_view($item, 'latest_feed', $item->language);
+      }
+      else {
+        $content = comment_view($item, node_load($item->nid), 'latest_feed', $item->language);
+      }
+
+      $content += array(
+        '#theme' => 'entity',
+        '#entity_type' => $entity_type,
+        '#entity' => $item,
+        '#view_mode' => 'latest_feed',
+        '#language' => $item->language,
+        '#page' => NULL,
+      );
+
+      $build['items'][] = $content;
     }
-    else {
-      $content = comment_view($item, node_load($item->nid), 'latest_feed', $item->language);
-    }
 
-    $content += array(
-      '#theme' => 'entity',
-      '#entity_type' => $entity_type,
-      '#entity' => $item,
-      '#view_mode' => 'latest_feed',
-      '#language' => $item->language,
-      '#page' => NULL,
+    $max = ceil($count/$page_count) - 1;
+    if ($max < 0) $max = 0;
+
+    $build['pager'] = array(
+      '#theme' => 'latest_feed_pager',
+      '#page' => $page,
+      '#max' => $max,
     );
-
-    $build['items'][] = $content;
   }
-
-  $max = ceil($count/$page_count) - 1;
-  if ($max < 0) $max = 0;
-
-  $build['pager'] = array(
-    '#theme' => 'latest_feed_pager',
-    '#page' => $page,
-    '#max' => $max,
-  );
+  else {
+    $build['#prefix'] .= '<p class="text-center">There are no items in this list</p>';
+  }
 
   return $build;
 }

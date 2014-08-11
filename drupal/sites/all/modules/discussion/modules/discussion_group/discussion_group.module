@@ -359,77 +359,78 @@ function discussion_group_form_alter(&$form, &$form_state, $form_id) {
 
   if (strpos($form_id, '_node_form') !== FALSE && in_array($form['#bundle'], array('gallery', 'event', 'discussion'))) {
 
-    form_load_include($form_state, 'inc', 'node', 'node.pages');
+    if ($form['#bundle'] == 'discussion' && isset($form['#node']->nid) && empty($form['#node']->field_reply_to[LANGUAGE_NONE][0]['target_id'])) {
+      form_load_include($form_state, 'inc', 'node', 'node.pages');
 
-    $groups = Group::getCurrentUserGroups();
-    $required = TRUE;
+      $groups = Group::getCurrentUserGroups();
+      $required = TRUE;
 
-    $group_options = array();
-    foreach ($groups as $group_id => $group) {
-      $group_options[$group_id] = $group->label();
-    }
+      $group_options = array();
+      foreach ($groups as $group_id => $group) {
+        $group_options[$group_id] = $group->label();
+      }
 
-    // Check for existing groups.
-    $group_options_default = array();
-    $group_options_value = array();
-    if (isset($form['#node']->nid)) {
-      $query = new EntityFieldQuery();
-      $query->entityCondition('entity_type', 'group_content');
-      $query->propertyCondition('entity_type', 'node');
-      $query->propertyCondition('eid', $form['#node']->nid);
+      // Check for existing groups.
+      $group_options_default = array();
+      $group_options_value = array();
+      if (isset($form['#node']->nid)) {
+        $query = new EntityFieldQuery();
+        $query->entityCondition('entity_type', 'group_content');
+        $query->propertyCondition('entity_type', 'node');
+        $query->propertyCondition('eid', $form['#node']->nid);
 
-      $results = $query->execute();
+        $results = $query->execute();
 
-      if (isset($results['group_content'])) {
-        $group_contents = entity_load('group_content', array_keys($results['group_content']));
+        if (isset($results['group_content'])) {
+          $group_contents = entity_load('group_content', array_keys($results['group_content']));
 
-        foreach ($group_contents as $group) {
-          $group_options_default[] = $group->gid;
+          foreach ($group_contents as $group) {
+            $group_options_default[] = $group->gid;
+          }
         }
       }
+      elseif (isset($form['#node']->field_reply_to[LANGUAGE_NONE][0]['target_id'])) {
+        $parent = node_load($form['#node']->field_reply_to[LANGUAGE_NONE][0]['target_id']);
+        $groups = GroupContent::getNodeGroupOwners($parent);
+        $group_options_value = $group_options_default = array_keys($groups);
+
+        $required = FALSE;
+      }
+
+      if ($current_group = discussion_get_current_group()) {
+        $group_options_default[] = $current_group->gid;
+      }
+
+      $form['group_assignment'] = array(
+        '#type' => 'fieldset',
+        '#title' => t('Group Assignment'),
+        '#weight' => -20,
+        '#tree' => TRUE,
+        '#collapsible' => TRUE,
+        '#collapsed' => TRUE,
+      );
+
+      $form['group_assignment']['groups'] = array(
+        '#type' => 'select',
+        '#title' => t('Publish to'),
+        '#options' => $group_options,
+        '#multiple' => TRUE,
+        '#required' => $required,
+        '#default_value' => $group_options_default,
+        //'#value' => $group_options_value,
+      );
+
+      if (!empty($group_options_value)) {
+        $form['group_assignment']['groups']['#value'] = $group_options_value;
+      }
+
+      $form['actions']['submit']['#submit'][] = 'discussion_group_node_form_submit';
     }
-    elseif (isset($form['#node']->field_reply_to[LANGUAGE_NONE][0]['target_id'])) {
-      $parent = node_load($form['#node']->field_reply_to[LANGUAGE_NONE][0]['target_id']);
-      $groups = GroupContent::getNodeGroupOwners($parent);
-      $group_options_value = $group_options_default = array_keys($groups);
-
-      $required = FALSE;
-    }
-
-    if ($current_group = discussion_get_current_group()) {
-      $group_options_default[] = $current_group->gid;
-    }
-
-    $form['group_assignment'] = array(
-      '#type' => 'fieldset',
-      '#title' => t('Group Assignment'),
-      '#weight' => -20,
-      '#tree' => TRUE,
-      '#collapsible' => TRUE,
-      '#collapsed' => TRUE,
-    );
-
-    $form['group_assignment']['groups'] = array(
-      '#type' => 'select',
-      '#title' => t('Publish to'),
-      '#options' => $group_options,
-      '#multiple' => TRUE,
-      '#required' => $required,
-      '#default_value' => $group_options_default,
-      //'#value' => $group_options_value,
-    );
-
-    if (!empty($group_options_value)) {
-      $form['group_assignment']['groups']['#value'] = $group_options_value;
-    }
-
-    $form['actions']['submit']['#submit'][] = 'discussion_group_node_form_submit';
 
   }
 }
 
 function discussion_group_node_form_submit(&$form, &$form_state) {
-
   $group_ids = $form_state['values']['group_assignment']['groups'];
 
   // Check for existing, update or add new.
@@ -445,13 +446,15 @@ function discussion_group_node_form_submit(&$form, &$form_state) {
 
     foreach ($group_contents as $group) {
       if (in_array($group->gid, $group_ids)) {
+        // remove so we don't add later.
         unset($group_ids[array_search($group->gid, $group_ids)]);
 
-
+        // update only with node type and save
         $group->entity_bundle = $form_state['complete form']['#node']->type;
         $group->save();
       }
       else {
+        // If it is not in the array we need to delete it.
         $group->delete();
       }
     }
@@ -468,10 +471,76 @@ function discussion_group_node_form_submit(&$form, &$form_state) {
     $gc->save();
   }
 
-  $current_group = discussion_get_current_group();
+  // If this is a discussion we need to update all nodes in thread.
+  if ($form_state['complete form']['#node']->type == 'discussion') {
+    _update_children_discussion_nodes($form_state['values']['nid'], $form_state['values']['group_assignment']['groups']);
+  }
+
+
+  // Redirect
+  //$current_group = discussion_get_current_group();
   //$form_state['redirect'] = 'group/' . $current_group->gid . '/' . $form_state['complete form']['#node']->type . 's';
 }
 
+function _update_children_discussion_nodes($nid, $group_ids) {
+  $nodes = array();
+
+  $query = new EntityFieldQuery();
+  $query->entityCondition('entity_type', 'node');
+  $query->entityCondition('bundle', 'discussion');
+  $query->fieldCondition('field_reply_to', 'target_id', $nid);
+
+  $result = $query->execute();
+
+  if (isset($result['node'])) {
+    $nodes = entity_load('node', array_keys($result['node']));
+  }
+
+  foreach ($nodes as $node) {
+    $modified_group_ids = $group_ids;
+
+    // Check for existing, update or add new.
+    $query = new EntityFieldQuery();
+    $query->entityCondition('entity_type', 'group_content');
+    $query->propertyCondition('entity_type', 'node');
+    $query->propertyCondition('eid', $node->nid);
+
+    $results = $query->execute();
+
+    if (isset($results['group_content'])) {
+      $group_contents = entity_load('group_content', array_keys($results['group_content']));
+
+      foreach ($group_contents as $group) {
+        if (in_array($group->gid, $modified_group_ids)) {
+          // remove so we don't add later.
+          unset($modified_group_ids[array_search($group->gid, $modified_group_ids)]);
+
+          // update only with node type and save
+          $group->entity_bundle = $node->type;
+          $group->save();
+        }
+        else {
+          // If it is not in the array we need to delete it.
+          $group->delete();
+        }
+      }
+    }
+
+    foreach ($modified_group_ids as $group_id) {
+      $gc = entity_create('group_content', array());
+
+      $gc->eid = $node->nid;
+      $gc->gid = $group_id;
+      $gc->entity_type = 'node';
+      $gc->entity_bundle = $node->type;
+
+      $gc->save();
+    }
+
+    _update_children_discussion_nodes($node->nid, $group_ids);
+  }
+
+}
 
 /**
  * Implements hook_node_access().

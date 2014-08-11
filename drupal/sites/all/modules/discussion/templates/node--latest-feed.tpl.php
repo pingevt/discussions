@@ -11,14 +11,15 @@ $headers = array(
 //$node_url = '';
 
 // get groups info
-$group_info = GroupContent::getNodeGroupOwnersByUser($node);
+$node_group_info = GroupContent::getNodeGroupOwnersByUser($node);
 $current_group = discussion_get_current_group();
+
 if ($type != 'discussion') {
   if ($current_group != NULL) {
     $node_url = 'group/' . $current_group->gid . '/' . $type . '/' . $node->nid;
   }
   else {
-    $node_url = 'group/' . current($group_info)->gid . '/' . $type . '/' . $node->nid;
+    $node_url = 'group/' . current($node_group_info)->gid . '/' . $type . '/' . $node->nid;
   }
 }
 else {
@@ -28,7 +29,7 @@ else {
     $node_url = 'group/' . $current_group->gid . '/' . $type . '/' . $parent->nid;
   }
   else {
-    $node_url = 'group/' . current($group_info)->gid . '/' . $type . '/' . $parent->nid;
+    $node_url = 'group/' . current($node_group_info)->gid . '/' . $type . '/' . $parent->nid;
   }
 
   if ($parent !== $node) {
@@ -77,7 +78,7 @@ else {
       '#suffix' => '</div>',
     );
 
-    foreach ($group_info as $group) {
+    foreach ($node_group_info as $group) {
       $uri = entity_uri('group', $group);
       $group_list['#items'][] = l($group->label(), $uri['path'], $uri['options']);
     }

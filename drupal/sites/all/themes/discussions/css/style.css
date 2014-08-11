@@ -7175,3 +7175,33 @@ div.add-or-remove-shortcuts {
 .node-gallery.node-teaser .field-type-image img::after:after {
   clear: both;
 }
+.node-event.node-teaser {
+  padding: 0;
+}
+.node-event.node-teaser .event-submitted-by {
+  border-top: 1px solid rgba(0, 91, 127, 0.30000000000000004);
+  background: rgba(0, 91, 127, 0.09999999999999998);
+  padding: 10px;
+}
+.node-event.node-teaser .event-submitted-by:before,
+.node-event.node-teaser .event-submitted-by:after {
+  content: " ";
+  display: table;
+}
+.node-event.node-teaser .event-submitted-by:after {
+  clear: both;
+}
+.node-event.node-teaser .event-submitted-by:before,
+.node-event.node-teaser .event-submitted-by:after {
+  content: " ";
+  display: table;
+}
+.node-event.node-teaser .event-submitted-by:after {
+  clear: both;
+}
+.node-event.node-teaser .event-submitted-by .submitted-date {
+  float: right;
+}
+.node-event.node-teaser .event-body {
+  padding: 0 10px 10px;
+}

@@ -118,19 +118,28 @@ class Group extends Entity {
   /**
    *  Check to see if a user has membership.
    */
-  public function isUserMember($uid) {
-    $query = new EntityFieldQuery();
-    $query->entityCondition('entity_type', 'group_membership');
-    $query->propertyCondition('uid', $uid);
-    $query->propertyCondition('gid', $this->gid);
+  public function isUserMember($uid, $refresh = FALSE) {
+    $group_members_list = &drupal_static(__FUNCTION__);
 
-    $result = $query->execute();
-    $group_memberships = array();
-    if (isset($result['group_membership'])) {
-      return TRUE;
+    if (isset($group_members_list[$this->gid][$uid]) && !$refresh) {
+      return $group_members_list[$this->gid][$uid];
     }
+    else {
+      $group_members_list[$this->gid][$uid] = FALSE;
 
-    return FALSE;
+      $query = new EntityFieldQuery();
+      $query->entityCondition('entity_type', 'group_membership');
+      $query->propertyCondition('uid', $uid);
+      $query->propertyCondition('gid', $this->gid);
+
+      $result = $query->execute();
+      $group_memberships = array();
+      if (isset($result['group_membership'])) {
+        $group_members_list[$this->gid][$uid] = TRUE;
+      }
+
+      return $group_members_list[$this->gid][$uid];
+    }
   }
 
   /**
@@ -173,7 +182,7 @@ class Group extends Entity {
     $q = new EntityFieldQueryByGroup(array($this->gid));
     $q->entityCondition('entity_type', 'node');
     $q->entityCondition('bundle', 'event');
-    $q->fieldOrderBy('field_dates', 'value', 'DESC');
+    $q->fieldOrderBy('field_dates', 'value', 'ASC');
 
     $r = $q->execute();
 
