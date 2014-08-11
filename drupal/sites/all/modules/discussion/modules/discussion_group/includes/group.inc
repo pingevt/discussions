@@ -96,7 +96,7 @@ class Group extends Entity {
       $group_memberships = entity_load('group_membership', array_keys($result['group_membership']));
 
       if (count($group_memberships) > 1) {
-        drupal_set_message('There a more than one group_memberships for this group/user', 'error', TRUE);
+        drupal_set_message(t('There a more than one group_memberships for this group/user'), 'error', TRUE);
         watchdog('discussion_group', 'There a more than one group_memberships for this group/user: Group: @group_id User: @user_id', array('@group_id' => $this->gid, '@user_id' => $user->uid), WATCHDOG_ERROR);
       }
 
@@ -257,7 +257,7 @@ function group_form($form, &$form_state, $entity, $op = 'edit', $entity_type = N
   $entity_info = entity_get_info($entity->entityType());
   $property_info = entity_get_property_info($entity->entityType());
 
-  list(,,$bundle) = entity_extract_ids('group', $entity);
+  list(, , $bundle) = entity_extract_ids('group', $entity);
 
   if (isset($entity_info['entity keys']['label'])) {
     $label_key = $entity_info['entity keys']['label'];
@@ -384,7 +384,7 @@ function group_add_user_by_email_form_submit($form, &$form_state) {
     if ($user = user_load_by_mail($form_state['values']['email'])) {
       // If user exists, check to see if user is alreadu in the group.
       if ($group->isUserMember($user->uid)) {
-        drupal_set_message('User already in group.');
+        drupal_set_message(t('User already in group.'));
       }
       else {
 
@@ -395,7 +395,7 @@ function group_add_user_by_email_form_submit($form, &$form_state) {
 
         $gm->save();
 
-        drupal_set_message('User added');
+        drupal_set_message(t('User added'));
       }
     }
     // If not, create and send an email.
@@ -429,7 +429,7 @@ function group_add_user_by_email_form_submit($form, &$form_state) {
 
     // Send the e-mail through the user module.
     drupal_mail('user', 'register_no_approval_required', $form_state['values']['email'], NULL, array('account' => $account), variable_get('site_mail', '<a href="mailto:noreply@example..com">noreply@example..com</a>'));
-    drupal_set_message('User created. Email was sent to user with further instructions.');
+    drupal_set_message(t('User created. Email was sent to user with further instructions.'));
 
     // Add to group
     $gm = entity_create('group_membership', array());

@@ -356,7 +356,6 @@ function group_membership_entity_access() {
  * Implements hook_form_alter().
  */
 function discussion_group_form_alter(&$form, &$form_state, $form_id) {
-
   if (strpos($form_id, '_node_form') !== FALSE && in_array($form['#bundle'], array('gallery', 'event', 'discussion'))) {
 
     if ($form['#bundle'] == 'discussion' && isset($form['#node']->nid) && empty($form['#node']->field_reply_to[LANGUAGE_NONE][0]['target_id'])) {
@@ -427,6 +426,11 @@ function discussion_group_form_alter(&$form, &$form_state, $form_id) {
       $form['actions']['submit']['#submit'][] = 'discussion_group_node_form_submit';
     }
 
+  }
+
+  if ($form_id == 'node_delete_confirm') {
+    $msg = 'Are you sure you want to delete this discussion and all its comments?';
+    $form['description']['#markup'] = $msg;
   }
 }
 
@@ -574,4 +578,50 @@ function discussion_group_file_entity_access($op, $file, $account) {
 
   // Returning nothing from this function would have the same effect.
   return FILE_ENTITY_ACCESS_DENY;
+}
+
+/**
+ * Implements hook_entity_delete().
+ */
+function discussion_group_entity_delete($entity, $type) {
+  if ($type == 'node' && $entity->type == 'discussion') {
+    $query = new EntityFieldQuery();
+    $query->entityCondition('entity_type', 'node');
+    $query->entityCondition('bundle', 'discussion');
+    $query->fieldCondition('field_reply_to', 'target_id', $entity->nid);
+
+    $result = $query->execute();
+
+    if (isset($result['node'])) {
+      foreach (array_keys($result['node']) as $_nid) {
+        $n = node_load($_nid);
+        // only delete direct children this will fire for their children.
+        node_delete($n->nid);
+      }
+    }
+  }
+}
+
+/**
+ * Function to get all child discussion node ids.
+ */
+function _find_discussion_child_nodes($nid) {
+  $node_ids = array();
+
+  $query = new EntityFieldQuery();
+  $query->entityCondition('entity_type', 'node');
+  $query->entityCondition('bundle', 'discussion');
+  $query->fieldCondition('field_reply_to', 'target_id', $nid);
+
+  $result = $query->execute();
+
+  if (isset($result['node'])) {
+    foreach (array_keys($result['node']) as $_nid) {
+      $node_ids[] = $_nid;
+
+      $node_ids = array_merge($node_ids, _find_discussion_child_nodes($_nid));
+    }
+  }
+
+  return $node_ids;
 }
