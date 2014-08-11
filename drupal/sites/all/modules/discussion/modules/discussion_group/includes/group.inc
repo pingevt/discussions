@@ -268,11 +268,11 @@ function group_form($form, &$form_state, $entity, $op = 'edit', $entity_type = N
       $property = $property_info['properties'][$label_key];
     }
 
-    $label_key = isset($property['label']) ? $property['label'] : t('Name');
+    $label_key_title = isset($property['label']) ? $property['label'] : t('Name');
 
     $form[$label_key] = array(
       '#type' => 'textfield',
-      '#title' => check_plain($label_key),
+      '#title' => check_plain($label_key_title),
       '#required' => isset($property['required']) ? $property['required'] : TRUE,
       '#default_value' => isset($entity->$label_key) ? $entity->$label_key : NULL,
     );
@@ -295,7 +295,6 @@ function group_form($form, &$form_state, $entity, $op = 'edit', $entity_type = N
 }
 
 function group_form_validate($form, &$form_state) {
-
   $entity = $form['#entity'];
   field_attach_form_validate($entity->entityType(), $entity, $form, $form_state);
 
