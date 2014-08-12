@@ -33,7 +33,7 @@ function discussion_menu() {
     'page callback' => 'discussion_group_dashboard_page_view',
     'page arguments' => array(1),
     'access callback' => 'group_entity_access',
-    'access arguments' => array( 1, 'access groups'),
+    'access arguments' => array('view', 1),
     'type' => MENU_SUGGESTED_ITEM,
     'file' => 'discussion.pages.inc',
   );

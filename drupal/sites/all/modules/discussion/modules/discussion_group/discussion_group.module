@@ -328,8 +328,17 @@ function group_uri($group) {
   return array('path' => 'group/' . $group->gid);
 }
 
-function group_entity_access($group_id) {
+function group_entity_access($op, $group = NULL, $account = NULL, $entity_type = 'group') {
   global $user;
+
+  if (empty($group)) {
+    return TRUE;
+  }
+
+  // Check user is in $group.
+  if (!$group->isUserMember($user->uid) && $op == 'view') {
+    return FALSE;
+  }
 
   return TRUE;
 }
