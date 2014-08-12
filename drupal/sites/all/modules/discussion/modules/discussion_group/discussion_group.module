@@ -336,11 +336,23 @@ function group_entity_access($op, $group = NULL, $account = NULL, $entity_type =
   }
 
   // Check user is in $group.
-  if (!$group->isUserMember($user->uid) && $op == 'view') {
-    return FALSE;
+  if ($group->isUserMember($user->uid)) {
+    switch ($op) {
+    case 'view':
+      return TRUE;
+      break;
+
+    case 'admin':
+      $membership = $group->getGroupMemebrship($user);
+      if ($membership->grid >= 5) {
+        return TRUE;
+      }
+      break;
+    }
+
   }
 
-  return TRUE;
+  return FALSE;
 }
 
 function group_membership_load() {

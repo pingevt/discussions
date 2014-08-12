@@ -42,7 +42,8 @@ function discussion_menu() {
     'title' => '',
     'page callback' => 'discussion_group_membership_page_view',
     'page arguments' => array(1),
-    'access arguments' => array('access content'),
+    'access callback' => 'group_entity_access',
+    'access arguments' => array('admin', 1),
     'type' => MENU_SUGGESTED_ITEM,
     'file' => 'discussion.pages.inc',
   );
@@ -597,24 +598,26 @@ function discussion_preprocess_page(&$variables) {
   elseif ($q[0] == 'group') {
     $group = discussion_get_current_group();
 
-    // Setup add content block.
-    $sidebar['content'] = array(
-      '#theme' => 'item_list',
-      '#items' => array(
-        'discussion' => array(
-          'data' => l(t('Start New Discussion'), 'group/' . $group->gid . '/discussion/add'),
-        ),
-        'event' => array(
-          'data' => l(t('Create New Event'), 'group/' . $group->gid . '/event/add'),
-        ),
-        'gallery' => array(
-          'data' => l(t('Start New Gallery'), 'group/' . $group->gid . '/gallery/add'),
-        ),
-      ),
-      '#title' => t(t('Add content')),
-    );
-
     if (!empty($group)) {
+
+      // Setup add content block.
+      $sidebar['content'] = array(
+        '#theme' => 'item_list',
+        '#items' => array(
+          'discussion' => array(
+            'data' => l(t('Start New Discussion'), 'group/' . $group->gid . '/discussion/add'),
+          ),
+          'event' => array(
+            'data' => l(t('Create New Event'), 'group/' . $group->gid . '/event/add'),
+          ),
+          'gallery' => array(
+            'data' => l(t('Start New Gallery'), 'group/' . $group->gid . '/gallery/add'),
+          ),
+        ),
+        '#title' => t(t('Add content')),
+      );
+
+
       $sidebar['group_content'] = array(
         '#theme' => 'item_list',
         '#items' => array(
