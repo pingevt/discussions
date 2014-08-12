@@ -35,8 +35,8 @@ function discussion_default_rules_configuration() {
             "DO" : [
               { "mail" : {
                   "to" : "[list-item:mail]",
-                  "subject" : "New [node:content-type] added.",
-                  "message" : "[node:body]",
+                  "subject" : "[site:name]: New [node:content-type] added.",
+                  "message" : "New content created for [node:title].\\r\\n\\r\\n[node:body]",
                   "from" : "[site:mail]",
                   "language" : [ "node:language" ]
                 }
@@ -73,8 +73,8 @@ function discussion_default_rules_configuration() {
             "DO" : [
               { "mail" : {
                   "to" : "[list-item:mail]",
-                  "subject" : "[node:content-type] updated.",
-                  "message" : "[node:body]",
+                  "subject" : "[site:name]: New [node:content-type] updated.",
+                  "message" : "Content updated for [node:title].\\r\\n\\r\\n[node:body]",
                   "from" : "[site:mail]",
                   "language" : [ "node:language" ]
                 }
