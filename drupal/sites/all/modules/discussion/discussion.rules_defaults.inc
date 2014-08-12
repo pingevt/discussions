@@ -15,7 +15,7 @@ function discussion_default_rules_configuration() {
       "OWNER" : "rules",
       "TAGS" : [ "Group notification" ],
       "REQUIRES" : [ "rules", "discussion_group" ],
-      "ON" : { "node_insert" : [] },
+      "ON" : { "discussion_group_node_insert_after_groups" : [] },
       "IF" : [
         { "node_is_of_type" : {
             "node" : [ "node" ],
@@ -53,7 +53,7 @@ function discussion_default_rules_configuration() {
       "OWNER" : "rules",
       "TAGS" : [ "Group notification" ],
       "REQUIRES" : [ "rules", "discussion_group" ],
-      "ON" : { "node_update" : [] },
+      "ON" : { "discussion_group_node_edit_after_groups" : [] },
       "IF" : [
         { "node_is_of_type" : {
             "node" : [ "node" ],

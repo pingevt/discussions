@@ -4,6 +4,33 @@
  * discussion_group.rules.inc
  */
 
+/**
+ * Implements hook_rules_event_info()
+ */
+function discussion_group_rules_event_info() {
+  return array(
+    'discussion_group_node_insert_after_groups' => array(
+      'label' => t('Node insert, after groups update'),
+      'module' => 'discussion_group',
+      'group' => t('Discussion Groups'),
+      'variables' => array(
+        'node' => array('type' => 'node', 'label' => t('Node')),
+      ),
+    ),
+    'discussion_group_node_edit_after_groups' => array(
+      'label' => t('Node edit, after groups update'),
+      'module' => 'discussion_group',
+      'group' => t('Discussion Groups'),
+      'variables' => array(
+        'node' => array('type' => 'node', 'label' => t('Node')),
+      ),
+    ),
+  );
+}
+
+/**
+ * Implements hook_rules_action_info()
+ */
 function discussion_group_rules_action_info() {
   $actions = array(
     'discussion_group_list_users_in_group' => array(
@@ -38,7 +65,9 @@ function discussion_group_list_users_in_group($node) {
     $memberships = $group->getGroupMembers();
 
     foreach ($memberships as $membership) {
-      $users[$membership->_user->uid] = $membership->_user;
+      if (isset($membership->_user->uid)) {
+        $users[$membership->_user->uid] = $membership->_user;
+      }
     }
   }
 

@@ -423,18 +423,25 @@ function discussion_group_form_alter(&$form, &$form_state, $form_id) {
         $form['group_assignment']['groups']['#value'] = $group_options_value;
       }
 
-      $form['actions']['submit']['#submit'][] = 'discussion_group_node_form_submit';
+      $key = array_search('node_form_submit', $form['actions']['submit']['#submit']);
+      $form['actions']['submit']['#submit'][$key] = 'discussion_group_node_form_submit';
     }
 
   }
 
-  if ($form_id == 'node_delete_confirm') {
+  if ($form_id == 'node_delete_confirm' && in_array($form['#bundle'], array('discussion'))) {
     $msg = 'Are you sure you want to delete this discussion and all its comments?';
     $form['description']['#markup'] = $msg;
   }
 }
 
 function discussion_group_node_form_submit(&$form, &$form_state) {
+
+  $op = isset($form['#node']->nid)? 'update' : 'insert';
+
+  node_form_submit($form, $form_state);
+
+  $node = node_load($form_state['values']['nid']);
   $group_ids = $form_state['values']['group_assignment']['groups'];
 
   // Check for existing, update or add new.
@@ -480,6 +487,12 @@ function discussion_group_node_form_submit(&$form, &$form_state) {
     _update_children_discussion_nodes($form_state['values']['nid'], $form_state['values']['group_assignment']['groups']);
   }
 
+  if ($op == 'insert') {
+    rules_invoke_event('discussion_group_node_insert_after_groups', $node);
+  }
+  elseif ($op == 'update') {
+    rules_invoke_event('discussion_group_node_edit_after_groups', $node);
+  }
 
   // Redirect
   //$current_group = discussion_get_current_group();
