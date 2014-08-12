@@ -59,6 +59,14 @@ function discussions_preprocess_node(&$variables) {
 
 function discussions_form_alter(&$form, &$form_state, $form_id) {
   _add_bootstrap_form_control($form);
+
+  if ($form_id == 'user_login_block') {
+
+  }
+
+  if ($form_id == 'user_pass') {
+
+  }
 }
 
 function _add_bootstrap_form_control(&$element) {
@@ -266,7 +274,12 @@ function discussions_button($variables) {
 
 
   if ($variables['element']['#button_type'] == 'submit') {
-    return '<div class="col-sm-4"><input' . drupal_attributes($element['#attributes']) . ' /></div>';
+    if ($variables['element']['#value'] == 'E-mail new password') {
+      return '<div class="col-sm-6"><input' . drupal_attributes($element['#attributes']) . ' /></div>';
+    }
+    else {
+      return '<div class="col-sm-4"><input' . drupal_attributes($element['#attributes']) . ' /></div>';
+    }
   }
   else {
     return '<input' . drupal_attributes($element['#attributes']) . ' />';
