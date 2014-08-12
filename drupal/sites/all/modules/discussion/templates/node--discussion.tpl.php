@@ -146,6 +146,8 @@
   <?php if ($reply_form && $view_mode == 'full'): ?>
   <div class="row">
     <div id="discussion-<?php print $node->nid; ?>" class="">
+      <hr>
+      <h4>Reply:</h4>
       <?php print render($reply_form); ?>
     </div>
   </div>

@@ -414,7 +414,8 @@ function group_add_user_by_email_form_submit($form, &$form_state) {
       'init' => 'email address',
       'roles' => array(
         DRUPAL_AUTHENTICATED_RID => 'authenticated user',
-        5 => 'Group Member',
+        // TODO: change this so it is not hard coded
+        4 => 'Group Member',
       ),
     );
 
