@@ -1,13 +1,5 @@
 <?php
 
-$headers = array(
-  'discussion' => $name . ' started a new discussion.',
-  'discussion_reply' => $name . ' commented on a discussion.',
-  'event' => $name . ' created a new event.',
-  'gallery' => $name . ' created a new gallery.',
-  'image' => $name . ' uploaded a new image.',
-);
-
 //$node_url = '';
 
 // get groups info
@@ -36,6 +28,13 @@ else {
     $type = 'discussion_reply';
   }
 }
+
+$headers = array(
+  'discussion' => $name . ' started a new ' . l('discussion', $node_url) . '.',
+  'event' => $name . ' created a new ' . l('discussion', $node_url) . '.',
+  'gallery' => $name . ' created a new ' . l('gallery', $node_url) . '.',
+  'image' => $name . ' uploaded a new ' . l('image', $node_url) . '.',
+);
 
 ?>
 <article id="node-<?php print $node->nid; ?>" class="<?php print $classes; ?> clearfix"<?php print $attributes; ?>>

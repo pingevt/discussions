@@ -365,6 +365,10 @@ function _pull_latest_content($group = NULL, $offset = 0, $limit = 10, $content_
     $q->fields('dgc')
     ->condition('gid', array_keys($groups), 'IN');
 
+    if ($content_type != '' && is_string($content_type)) {
+      $q->condition('entity_bundle', $content_type);
+    }
+
     if ($offset == NULL && $limit == NULL) {
       $cq = $q->countQuery();
       $r = $cq->execute()->fetchAssoc();

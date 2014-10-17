@@ -31,6 +31,7 @@ function discussions_preprocess_page(&$vars) {
   global $user;
 
   drupal_add_js(path_to_theme() . '/bootstrap/js/dropdown.js');
+  drupal_add_js(path_to_theme() . '/bootstrap/js/collapse.js');
 
   if ($user->uid == 0) {
     $vars['theme_hook_suggestions'] = array('page__login');

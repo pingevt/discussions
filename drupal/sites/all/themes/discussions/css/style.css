@@ -7839,7 +7839,7 @@ div.messages {
   /* LTR */
 }
 div.status {
-  background-image: url(../../misc/message-24-ok.png);
+  background-image: url(/misc/message-24-ok.png);
   border-color: #be7;
 }
 div.status,
@@ -7851,7 +7851,7 @@ table tr.ok {
   background-color: #f8fff0;
 }
 div.warning {
-  background-image: url(../../misc/message-24-warning.png);
+  background-image: url(/misc/message-24-warning.png);
   border-color: #ed5;
 }
 div.warning,
@@ -7863,7 +7863,7 @@ table tr.warning {
   background-color: #fffce5;
 }
 div.error {
-  background-image: url(../../misc/message-24-error.png);
+  background-image: url(/misc/message-24-error.png);
   border-color: #ed541d;
 }
 div.error,
@@ -8945,7 +8945,7 @@ div.add-or-remove-shortcuts {
 #comments .ajax-comment-wrapper:after {
   clear: both;
 }
-#comments .ajax-comment-wrapper .messages {
+#comments .messages {
   clear: both;
 }
 #comments div.comment {
