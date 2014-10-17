@@ -44,7 +44,6 @@ else {
     <button class="btn btn-default btn-xs btn-expand pull-right" data-toggle="collapse" data-target="#node-<?php print $node->nid; ?>-collapse" ><i class="glyphicon glyphicon-align-justify"></i> <span class="label">Expand Content</span></button>
     <?php print $user_picture ?>
     <h2><?php print $headers[$type]; ?></h2>
-    <p class="pull-right"><?php print format_interval((time() - $created)); ?></p>
 
   </header>
 
@@ -70,21 +69,25 @@ else {
 
   <hr />
 
-  <?php
-    $group_list = array(
-      '#theme' => 'item_list',
-      '#items' => array(),
-      '#title' => t('Groups'),
-      '#prefix' => '<div class="node-groups-list">',
-      '#suffix' => '</div>',
-    );
+  <footer>
 
-    foreach ($node_group_info as $group) {
-      $uri = entity_uri('group', $group);
-      $group_list['#items'][] = l($group->label(), $uri['path'], $uri['options']);
-    }
+    <p class="pull-right"><?php print format_interval((time() - $created)); ?></p>
+    <?php
+      $group_list = array(
+        '#theme' => 'item_list',
+        '#items' => array(),
+        '#title' => t('Groups'),
+        '#prefix' => '<div class="node-groups-list">',
+        '#suffix' => '</div>',
+      );
 
-    print render($group_list);
-  ?>
+      foreach ($node_group_info as $group) {
+        $uri = entity_uri('group', $group);
+        $group_list['#items'][] = l($group->label(), $uri['path'], $uri['options']);
+      }
+
+      print render($group_list);
+    ?>
+  </footer>
 
 </article>
