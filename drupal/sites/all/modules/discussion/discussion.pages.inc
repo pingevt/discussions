@@ -44,7 +44,7 @@ function discussion_dashboard_page_view() {
 
     foreach ($items as $item) {
 
-      $entity_type = $item->__nc;
+      $entity_type = $item->_entity_type;
 
       if ($entity_type == 'node') {
         $content = node_view($item, 'latest_feed', $item->language);
@@ -248,7 +248,7 @@ function _latest_feed_landing_page($group, $content_type = NULL) {
   if ($count > 0) {
     foreach ($items as $item) {
 
-      $entity_type = $item->__nc;
+      $entity_type = $item->_entity_type;
 
       if ($entity_type == 'node') {
         $content = node_view($item, 'latest_feed', $item->language);
@@ -333,11 +333,14 @@ function discussion_group_discussion_page_view($group, $node) {
   // Populate $node->content with a render() array.
   node_build_content($node, $view_mode, $langcode);
 
+  // Since this isn't the normal drupal page we need to add comments manually.
+  $node->content['comments'] = comment_node_page_additions($node);
+
   $build['node'] = $node->content;
   // We don't need duplicate rendering info in node->content.
   unset($node->content);
 
-  $node->thread = _build_discussion_thread($node, 'discussion_replies', $langcode);
+  //$node->thread = _build_discussion_thread($node, 'discussion_replies', $langcode);
 
   $build['node'] += array(
     '#theme' => 'node',
@@ -351,12 +354,10 @@ function discussion_group_discussion_page_view($group, $node) {
   drupal_alter(array('node_view', 'entity_view'), $build['node'], $type);
 
   // Build thread...
-  //$build['thread'] = _build_discussion_thread($node, 'discussion_replies', $langcode);
+  // $build['thread'] = _build_discussion_thread($node, 'discussion_replies', $langcode);
 
   return $build;
 }
-
-
 
 function discussion_group_event_add($group) {
   module_load_include('inc', 'node', 'node.pages');

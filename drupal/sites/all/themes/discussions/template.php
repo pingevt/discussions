@@ -30,6 +30,8 @@ function discussions_preprocess_html(&$vars) {
 function discussions_preprocess_page(&$vars) {
   global $user;
 
+  drupal_add_js(path_to_theme() . '/bootstrap/js/dropdown.js');
+
   if ($user->uid == 0) {
     $vars['theme_hook_suggestions'] = array('page__login');
   }
@@ -43,7 +45,7 @@ function discussions_preprocess_page(&$vars) {
 }
 
 /**
- * Implements hook_preprocess_HOOK().
+ * Implements hook_preprocess_node().
  */
 function discussions_preprocess_node(&$variables) {
 
@@ -55,6 +57,13 @@ function discussions_preprocess_node(&$variables) {
     drupal_add_js(path_to_theme() . '/bootstrap/js/collapse.js');
     drupal_add_js(path_to_theme() . '/bootstrap/js/transition.js');
   }
+}
+
+/**
+ * Implements hook_preprocess_comment().
+ */
+function discussions_preprocess_comment(&$variables) {
+  $variables['submitted'] = '<div class="submitted-date">' . date('n/j/y', $variables['comment']->created) . '<br />' . date('h:ia', $variables['comment']->created) . '</div>';
 }
 
 function discussions_form_alter(&$form, &$form_state, $form_id) {
@@ -242,6 +251,20 @@ function discussions_node_view_alter(&$build) {
   //dpm($build);
 }
 
+/**
+ * Implements hook_comment_view_alter().
+ */
+function discussions_comment_view_alter(&$build) {
+  /*
+  $build['#contextual_links'] = array(
+    'comment' => array(
+      'comment',
+      array($build['#comment']->cid),
+    ),
+  );
+  */
+}
+
 function discussions_menu_local_tasks(&$variables) {
   $output = '';
 
@@ -262,12 +285,21 @@ function discussions_menu_local_tasks(&$variables) {
 }
 
 function discussions_button($variables) {
+
   if ($variables['element']['#button_type'] == 'submit') {
     if ($variables['element']['#value'] == 'Save') {
       $variables['element']['#attributes']['class'][] = 'btn';
       $variables['element']['#attributes']['class'][] = 'btn-primary';
     }
     if ($variables['element']['#value'] == 'Delete') {
+      $variables['element']['#attributes']['class'][] = 'btn';
+      $variables['element']['#attributes']['class'][] = 'btn-warning';
+    }
+    if ($variables['element']['#value'] == 'Upload') {
+      $variables['element']['#attributes']['class'][] = 'btn';
+      $variables['element']['#attributes']['class'][] = 'btn-default';
+    }
+    if ($variables['element']['#value'] == 'Cancel') {
       $variables['element']['#attributes']['class'][] = 'btn';
       $variables['element']['#attributes']['class'][] = 'btn-warning';
     }
@@ -287,8 +319,11 @@ function discussions_button($variables) {
     if ($variables['element']['#value'] == 'E-mail new password') {
       return '<div class="col-sm-6"><input' . drupal_attributes($element['#attributes']) . ' /></div>';
     }
-    else {
+    elseif (in_array($variables['element']['#value'], array('Save', 'Delete'))) {
       return '<div class="col-sm-4"><input' . drupal_attributes($element['#attributes']) . ' /></div>';
+    }
+    else {
+      return '<input' . drupal_attributes($element['#attributes']) . ' />';
     }
   }
   else {
@@ -323,3 +358,59 @@ function discussions_image($variables) {
   return '<img' . drupal_attributes($attributes) . ' />';
 }
 
+function discussions_item_list($variables) {
+  $items = $variables['items'];
+  $title = $variables['title'];
+  $type = $variables['type'];
+  $attributes = $variables['attributes'];
+
+  // Only output the list container and title, if there are any list items.
+  // Check to see whether the block title exists before adding a header.
+  // Empty headers are not semantic and present accessibility challenges.
+  $output = '';
+  if (isset($title) && $title !== '') {
+    $output .= '<h3>' . $title . '</h3>';
+  }
+
+  if (!empty($items)) {
+    $output .= "<$type" . drupal_attributes($attributes) . '>';
+    $num_items = count($items);
+    $i = 0;
+    foreach ($items as $item) {
+      $attributes = array();
+      $children = array();
+      $data = '';
+      $i++;
+      if (is_array($item)) {
+        foreach ($item as $key => $value) {
+          if ($key == 'data') {
+            $data = $value;
+          }
+          elseif ($key == 'children') {
+            $children = $value;
+          }
+          else {
+            $attributes[$key] = $value;
+          }
+        }
+      }
+      else {
+        $data = $item;
+      }
+      if (count($children) > 0) {
+        // Render nested list.
+        $data .= theme_item_list(array('items' => $children, 'title' => NULL, 'type' => $type, 'attributes' => $attributes));
+      }
+      if ($i == 1) {
+        $attributes['class'][] = 'first';
+      }
+      if ($i == $num_items) {
+        $attributes['class'][] = 'last';
+      }
+      $output .= '<li' . drupal_attributes($attributes) . '>' . $data . "</li>\n";
+    }
+    $output .= "</$type>";
+  }
+  //$output .= '</div>';
+  return $output;
+}

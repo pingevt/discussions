@@ -1,4 +1,5 @@
 <?php
+
 /**
  * @file
  * Default theme implementation to display a node.
@@ -79,14 +80,13 @@
  * @ingroup themeable
  */
 ?>
-
 <?php if ($view_mode == ''): ?>
 
 <?php else: ?>
 
   <?php print render($title_prefix); ?>
   <?php if (!$page && $view_mode != 'discussion_replies'): ?>
-    <h2<?php print $title_attributes; ?>><a href="<?php print $node_url; ?>"><?php print $title; ?></a></h2>
+    <h2<?php print $title_attributes; ?>><?php print $title; ?></h2>
   <?php endif; ?>
 
   <div id="node-<?php print $node->nid; ?>" class="<?php print $classes; ?> clearfix"<?php print $attributes; ?>>
@@ -101,7 +101,7 @@
         <?php print $name; ?>
       </div>
 
-      <div class="content col-sm-10"<?php print $content_attributes; ?>>
+      <div class="content col-sm-10" <?php print $content_attributes; ?>>
         <?php
           // We hide the comments and links now so that we can render them later.
           hide($content['comments']);
@@ -116,41 +116,10 @@
       </div>
 
     </div>
-
-    <?php if ($reply_form && $view_mode == 'discussion_replies'): ?>
-    <hr />
-    <div class="row">
-      <div class="col-sm-2">
-        <button type="button" class="btn btn-xs btn-default pull-right reply-to-btn" data-toggle="collapse" data-target="#discussion-<?php print $node->nid; ?>">Reply</button>
-      </div>
-      <div class="col-sm-10">
-        <div id="discussion-<?php print $node->nid; ?>" class="collapse">
-          <?php print render($reply_form); ?>
-        </div>
-      </div>
-    </div>
-    <?php endif; ?>
-
   </div>
 
-  <?php if (isset($thread)): ?>
-    <div class="row">
-      <div class="col-sm-13 col-sm-offset-1 thread">
-    <?php
-      print render($thread);
-    ?>
-      </div>
-    </div>
-  <?php endif; ?>
-
-  <?php if ($reply_form && $view_mode == 'full'): ?>
-  <div class="row">
-    <div id="discussion-<?php print $node->nid; ?>" class="">
-      <hr>
-      <h4>Reply:</h4>
-      <?php print render($reply_form); ?>
-    </div>
-  </div>
-  <?php endif; ?>
+  <?php print render($content['comments']); ?>
 
 <?php endif; ?>
+
+

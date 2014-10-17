@@ -17,8 +17,6 @@ function discussion_group_menu() {
     'type' => MENU_SUGGESTED_ITEM,
   );
 
-
-
   $items['group/%group/memberships/%user/remove'] = array(
     'title' => 'Group',
     'page callback' => 'group_membership_remove_user',
@@ -304,7 +302,6 @@ function discussion_group_entity_presave($entity, $type) {
       $entity->updated = time();
     }
   }
-
 }
 
 /**
@@ -345,6 +342,13 @@ function group_entity_access($op, $group = NULL, $account = NULL, $entity_type =
     case 'admin':
       $membership = $group->getGroupMemebrship($user);
       if ($membership->grid >= 5) {
+        return TRUE;
+      }
+      break;
+
+    case 'update':
+      // Check if the user has the 'editor' role.
+      if (in_array('administrator', $user->roles)) {
         return TRUE;
       }
       break;
@@ -450,6 +454,11 @@ function discussion_group_form_alter(&$form, &$form_state, $form_id) {
 
   }
 
+  if (strpos($form_id, 'comment_') !== FALSE) {
+    // We put it here, so comment is already saved.
+    $form['#submit'][] = 'discussion_group_comment_form_submit';
+  }
+
   if ($form_id == 'node_delete_confirm' && in_array($form['#bundle'], array('discussion'))) {
     $msg = 'Are you sure you want to delete this discussion and all its comments?';
     $form['description']['#markup'] = $msg;
@@ -465,6 +474,9 @@ function discussion_group_node_form_submit(&$form, &$form_state) {
   $node = node_load($form_state['values']['nid']);
   $group_ids = $form_state['values']['group_assignment']['groups'];
 
+  GroupContent::setGroupContent('node', $node, $group_ids);
+
+/*
   // Check for existing, update or add new.
   $query = new EntityFieldQuery();
   $query->entityCondition('entity_type', 'group_content');
@@ -502,10 +514,23 @@ function discussion_group_node_form_submit(&$form, &$form_state) {
 
     $gc->save();
   }
+*/
+  // We need to update all comments if this is an update.
 
-  // If this is a discussion we need to update all nodes in thread.
-  if ($form_state['complete form']['#node']->type == 'discussion') {
-    _update_children_discussion_nodes($form_state['values']['nid'], $form_state['values']['group_assignment']['groups']);
+  if ($op == 'update') {
+    // Check for comments and update with proper groups.
+    $query = new EntityFieldQuery();
+    $query->entityCondition('entity_type', 'comment');
+    $query->propertyCondition('nid', $node->nid);
+    $results = $query->execute();
+
+    if (isset($results['comment'])) {
+      $comments = entity_load('comment', array_keys($results['comment']));
+
+      foreach ($comments as $comment) {
+        GroupContent::setGroupContent('comment', $comment, $group_ids);
+      }
+    }
   }
 
   if ($op == 'insert') {
@@ -520,63 +545,18 @@ function discussion_group_node_form_submit(&$form, &$form_state) {
   //$form_state['redirect'] = 'group/' . $current_group->gid . '/' . $form_state['complete form']['#node']->type . 's';
 }
 
-function _update_children_discussion_nodes($nid, $group_ids) {
-  $nodes = array();
 
-  $query = new EntityFieldQuery();
-  $query->entityCondition('entity_type', 'node');
-  $query->entityCondition('bundle', 'discussion');
-  $query->fieldCondition('field_reply_to', 'target_id', $nid);
+function discussion_group_comment_form_submit(&$form, &$form_state) {
+  $comment_id = $form_state['values']['cid'];
+  $node_id = $form_state['values']['nid'];
 
-  $result = $query->execute();
+  // Load node so we can get groups.
+  $node = node_load($node_id);
+  $comment = comment_load($comment_id);
 
-  if (isset($result['node'])) {
-    $nodes = entity_load('node', array_keys($result['node']));
-  }
+  $groups = GroupContent::getNodeGroupOwners($node);
 
-  foreach ($nodes as $node) {
-    $modified_group_ids = $group_ids;
-
-    // Check for existing, update or add new.
-    $query = new EntityFieldQuery();
-    $query->entityCondition('entity_type', 'group_content');
-    $query->propertyCondition('entity_type', 'node');
-    $query->propertyCondition('eid', $node->nid);
-
-    $results = $query->execute();
-
-    if (isset($results['group_content'])) {
-      $group_contents = entity_load('group_content', array_keys($results['group_content']));
-
-      foreach ($group_contents as $group) {
-        if (in_array($group->gid, $modified_group_ids)) {
-          // remove so we don't add later.
-          unset($modified_group_ids[array_search($group->gid, $modified_group_ids)]);
-
-          // update only with node type and save
-          $group->entity_bundle = $node->type;
-          $group->save();
-        }
-        else {
-          // If it is not in the array we need to delete it.
-          $group->delete();
-        }
-      }
-    }
-
-    foreach ($modified_group_ids as $group_id) {
-      $gc = entity_create('group_content', array());
-
-      $gc->eid = $node->nid;
-      $gc->gid = $group_id;
-      $gc->entity_type = 'node';
-      $gc->entity_bundle = $node->type;
-
-      $gc->save();
-    }
-
-    _update_children_discussion_nodes($node->nid, $group_ids);
-  }
+  GroupContent::setGroupContent('comment', $comment, array_keys($groups));
 
 }
 
@@ -639,6 +619,7 @@ function discussion_group_entity_delete($entity, $type) {
 /**
  * Function to get all child discussion node ids.
  */
+ /*
 function _find_discussion_child_nodes($nid) {
   $node_ids = array();
 
@@ -658,4 +639,72 @@ function _find_discussion_child_nodes($nid) {
   }
 
   return $node_ids;
+}
+*/
+
+/**
+ * Implements hook_user_delete().
+ */
+function discussion_group_user_delete($account) {
+  // delete all group memberships
+  db_delete('discussion_group_membership')
+    ->condition('uid', $account->uid)
+    ->execute();
+}
+
+/**
+ * Implements hook_token_info().
+ */
+function discussion_group_token_info() {
+  $type = array(
+    'name' => t('Groups'),
+    'description' => t('Tokens related to groups, or "groups".'),
+    'needs-data' => 'group',
+  );
+
+  $group['gid'] = array(
+    'name' => t('Group ID'),
+    'description' => t('The unique ID of the group'),
+  );
+
+  $group['group-url'] = array(
+    'name' => t('Group url'),
+    'description' => t('The url of the group'),
+  );
+
+  return array(
+    'types' => array('group' => $type),
+    'tokens' => array('group' => $group),
+  );
+}
+
+/**
+ * Implements hook_tokens().
+ */
+function discussion_group_tokens($type, $tokens, array $data = array(), array $options = array()) {
+  $url_options = array('absolute' => TRUE);
+  if (isset($options['language'])) {
+    $url_options['language'] = $options['language'];
+    $language_code = $options['language']->language;
+  }
+  else {
+    $language_code = NULL;
+  }
+
+  $replacements = array();
+  if ($type == 'group' && !empty($data['group'])) {
+    $group = $data['group'];
+    foreach ($tokens as $name => $original) {
+      switch ($name) {
+      // Simple key values on the node.
+      case 'gid':
+        $replacements[$original] = $group->gid;
+        break;
+      case 'group-url':
+        $replacements[$original] = url('group/' . $group->gid, $url_options);
+        break;
+      }
+    }
+  }
+  return $replacements;
 }

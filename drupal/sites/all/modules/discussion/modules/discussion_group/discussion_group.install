@@ -171,7 +171,7 @@ function _discussion_group_content_table() {
       'created' => array('created'),
     ),
     'unique keys' => array(
-      'gid_eid' => array('gid', 'eid'),
+      'gid_eid' => array('gid', 'eid', 'entity_type'),
       'gcid' => array('gcid'),
     ),
     'foreign keys' => array(

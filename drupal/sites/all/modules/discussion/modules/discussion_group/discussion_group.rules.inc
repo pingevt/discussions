@@ -25,6 +25,15 @@ function discussion_group_rules_event_info() {
         'node' => array('type' => 'node', 'label' => t('Node')),
       ),
     ),
+    'user_added_to_discussion_group' => array(
+      'label' => t('User added to discussion group'),
+      'module' => 'discussion_group',
+      'group' => t('Discussion Groups'),
+      'variables' => array(
+        'group' => array('type' => 'group', 'label' => t('Group')),
+        'user' => array('type' => 'user', 'label' => t('User')),
+      ),
+    ),
   );
 }
 

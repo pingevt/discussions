@@ -1,5 +1,7 @@
 @import '../bootstrap/less/bootstrap.less';
 
+@import '../font-awesome/less/font-awesome.less';
+
 @import 'variables.less';
 @import 'clndr.less';
 @import 'forms.less';
@@ -1045,6 +1047,33 @@ div.add-or-remove-shortcuts {
 #sidebar #user-info-block {
   margin-bottom: 32px;
 
+  .user-admin-links {
+    float: right;
+
+    button {
+      border: none;
+      background: transparent;
+
+      i {
+        color: @lightest-gray;
+        &:hover {
+          color: @gray;
+        }
+      }
+
+      &:active {
+        .box-shadow( none );
+      }
+    }
+
+    &.open .dropdown-toggle {
+      .box-shadow( none );
+      i {
+        color: @light-gray;
+      }
+    }
+  }
+
   .user-img {
     float: left;
     margin: 0 8px 8px 0;
@@ -1058,6 +1087,7 @@ div.add-or-remove-shortcuts {
     font-size: 1em;
   }
 
+  /*
   .item-list {
     clear: both;
     .clearfix();
@@ -1093,6 +1123,7 @@ div.add-or-remove-shortcuts {
       }
     }
   }
+  */
 }
 
 /**
@@ -1137,7 +1168,38 @@ div.add-or-remove-shortcuts {
   article {
     .tile;
 
+    border-left-width: 5px;
+
+    &.comment {
+      border-left-color: @hl-comment;
+    }
+
+    &.node.node-discussion {
+      border-left-color: @hl-discussion;
+    }
+
+    &.node.node-gallery {
+      border-left-color: @hl-gallery;
+    }
+
+    &.node.node-event {
+      border-left-color: @hl-event;
+    }
+
     header {
+      .btn-expand {
+        background-color: fadeout(@brand-primary, 90%);
+        border-color: transparent;
+
+        i {
+          color: fadeout(@brand-primary, 70%);
+        }
+
+        span.label {
+          display: none;
+        }
+      }
+
       .user-picture {
         float: left;
         margin-right: 16px;
@@ -1160,6 +1222,18 @@ div.add-or-remove-shortcuts {
 
     hr {
       clear: both;
+    }
+
+    .content {
+      clear: both;
+    }
+
+    footer {
+      p {
+        margin: 2px 0 0 0;
+        padding: 0;
+        font-size: .75em;
+      }
     }
   }
 
@@ -1301,5 +1375,27 @@ div.add-or-remove-shortcuts {
 
   .event-body {
     padding: 0 10px 10px;
+  }
+}
+
+#comments {
+  .ajax-comment-wrapper {
+    .clearfix();
+
+    .messages {
+      clear: both;
+    }
+  }
+
+  div.comment {
+    .tile();
+    margin-left: percentage(1/14);
+  }
+
+  hr {
+    clear: both;
+  }
+  .comment-form {
+    clear: both;
   }
 }

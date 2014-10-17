@@ -6,7 +6,11 @@
 
 define('DISCUSSION_PATH', drupal_get_path('module', 'discussion'));
 
-include_once 'discussion.features.inc';
+include_once 'discussion.inc';
+include_once 'discussion.field_base.inc';
+include_once 'discussion.field_instance.inc';
+include_once 'discussion.filter.inc';
+include_once 'discussion.user_role.inc';
 
 /**
  * Implements hook_menu().
@@ -48,7 +52,7 @@ function discussion_menu() {
     'file' => 'discussion.pages.inc',
   );
 
-  // Content lists
+  // Content lists.
   $items['group/%group/discussions'] = array(
     'title' => '',
     'page callback' => 'discussion_group_discussion_landing_page_view',
@@ -76,7 +80,7 @@ function discussion_menu() {
     'file' => 'discussion.pages.inc',
   );
 
-  // Individual Content Pages
+  // Individual Content Pages.
   $items['group/%group/discussion/add'] = array(
     'title' => '',
     'page callback' => 'discussion_group_discussion_add',
@@ -96,7 +100,6 @@ function discussion_menu() {
     'type' => MENU_SUGGESTED_ITEM,
     'file' => 'discussion.pages.inc',
   );
-
 
   $items['group/%group/event/add'] = array(
     'title' => '',
@@ -118,7 +121,6 @@ function discussion_menu() {
     'file' => 'discussion.pages.inc',
   );
 
-
   $items['group/%group/gallery/add'] = array(
     'title' => '',
     'page callback' => 'discussion_group_gallery_add',
@@ -139,10 +141,7 @@ function discussion_menu() {
     'file' => 'discussion.pages.inc',
   );
 
-
-
-
-  // Callbackcs for calendars
+  // Callbackcs for calendars.
   $items['api/current-events'] = array(
     'page callback' => 'current_events_callback',
     'page arguments' => array(),
@@ -162,7 +161,7 @@ function discussion_menu() {
   // Super admin pages
   // admin/structure/discussion/group-membership/membership/manage
   $items['admin/groups'] = array(
-    'title' => 'Discussion admin',
+    'title' => t('Discussion admin'),
     'description' => 'Discussion admin',
     'page callback' => 'group_admin',
     'access callback' => TRUE,
@@ -248,7 +247,7 @@ function discussion_init() {
       }
 
       if (!empty($url_group)) {
-        drupal_goto('group/' . $url_group->gid . '/' . $type . '/' . $node->nid);
+        drupal_goto('group/' . $url_group->gid . '/' . strtolower($type) . '/' . $node->nid);
       }
       else {
         drupal_goto();
@@ -349,48 +348,6 @@ function _sort_entities_by_created($a, $b) {
   return ($a->created < $b->created) ? 1 : -1;
 }
 
-function _build_discussion_thread($org_node, $view_mode, $langcode) {
-  $build = array();
-
-  $query = new EntityFieldQuery();
-  $query->entityCondition('entity_type', 'node');
-  $query->entityCondition('bundle', 'discussion');
-  $query->fieldCondition('field_reply_to', 'target_id', $org_node->nid);
-  $results = $query->execute();
-
-  if (isset($results['node'])) {
-    $nodes = node_load_multiple(array_keys($results['node']));
-
-    foreach ($nodes as $node) {
-      // Populate $node->content with a render() array.
-      node_build_content($node, $view_mode, $langcode);
-      $node_content = $node->content;
-      // We don't need duplicate rendering info in node->content.
-      unset($node->content);
-
-      $node->thread = _build_discussion_thread($node, 'discussion_replies', $langcode);
-
-      $node_content += array(
-        '#theme' => 'node',
-        '#node' => $node,
-        '#view_mode' => $view_mode,
-        '#language' => $node->language,
-      );
-
-      // Allow modules to modify the structured node.
-      $type = 'node';
-      drupal_alter(array('node_view', 'entity_view'), $node_content, $type);
-
-      $build[] = array(
-        'node' => $node_content,
-        //'children' => _build_discussion_thread($node, $view_mode, $langcode)
-      );
-    }
-  }
-
-  return $build;
-}
-
 function _pull_latest_content($group = NULL, $offset = 0, $limit = 10, $content_type = '') {
   $items = array();
   $groups = array();
@@ -403,7 +360,34 @@ function _pull_latest_content($group = NULL, $offset = 0, $limit = 10, $content_
   }
 
   if (!empty($groups)) {
+    $q = db_select('discussion_group_content', 'dgc');
 
+    $q->fields('dgc')
+    ->condition('gid', array_keys($groups), 'IN');
+
+    if ($offset == NULL && $limit == NULL) {
+      $cq = $q->countQuery();
+      $r = $cq->execute()->fetchAssoc();
+      return $r['expression'];
+    }
+    else {
+      $q->range($offset, $limit);
+    }
+
+    $result = $q->execute();
+
+    while ($gc = $result->fetchAssoc()) {
+      // Load entities
+      if ($entity = entity_load_single($gc['entity_type'], $gc['eid']) ) {
+        // Make sure it is published
+        if ($entity->status == 1) {
+          $entity->_entity_type = $gc['entity_type'];
+          $items[] = $entity;
+        }
+      }
+    }
+
+/*
     $q = db_select('discussion_group_content', 'dgc');
     $q->join('node', 'n', 'dgc.eid = n.nid');
     $q->addField('n', 'created', 'node_created');
@@ -436,7 +420,11 @@ function _pull_latest_content($group = NULL, $offset = 0, $limit = 10, $content_
         $items[$i->nid] = $i;
       }
     }
+*/
   }
+
+  // Sort items.
+  usort($items, '_sort_entities_by_created');
 
   return $items;
 }
@@ -496,6 +484,59 @@ function current_events_callback() {
   // Get groups of the currently logged in user
   $groups = Group::getCurrentUserGroups();
 
+  $q = _build_events_query_for_mini_calendar(array_keys($groups), $start, $end);
+
+  $result = $q->execute();
+
+  while ($record = $result->fetchAssoc()) {
+    $node = node_load($record['nid']);
+
+    $output[] = array(
+      'start' => $node->field_dates[LANGUAGE_NONE][0]['value'],
+      'end' => $node->field_dates[LANGUAGE_NONE][0]['value2'],
+      'title' => $node->title,
+      'location' => isset($node->field_event_location[LANGUAGE_NONE][0]['value'])? $node->field_event_location[LANGUAGE_NONE][0]['value'] : '',
+      'url' => '',
+    );
+  }
+
+  return $output;
+}
+
+function group_events_callback() {
+  $query_args = drupal_get_query_parameters();
+
+  $date = isset($_GET['date'])? strtotime($_GET['date']) : mktime(0, 0, 0, date('m'), date('d'), date('Y'));
+
+  $start = date('Y-m-', $date) . '01';
+  $end = date('Y-m-', $date) . date('t', $date);
+
+  // Initialize return output array.
+  $output = array();
+
+  // Get group of the current page.
+  $group = menu_get_object('group', 2);
+
+  $q = _build_events_query_for_mini_calendar(array($group->gid), $start, $end);
+
+  $result = $q->execute();
+
+  while ($record = $result->fetchAssoc()) {
+    $node = node_load($record['nid']);
+
+    $output[] = array(
+      'start' => $node->field_dates[LANGUAGE_NONE][0]['value'],
+      'end' => $node->field_dates[LANGUAGE_NONE][0]['value2'],
+      'title' => $node->title,
+      'location' => isset($node->field_event_location[LANGUAGE_NONE][0]['value'])? $node->field_event_location[LANGUAGE_NONE][0]['value'] : '',
+      'url' => '',
+    );
+  }
+
+  return $output;
+}
+
+function _build_events_query_for_mini_calendar($group_ids, $start, $end) {
   // Query Events within the group and within the time frame.
   $q = db_select('node', 'n');
   $q->fields('n', array('nid'));
@@ -503,6 +544,7 @@ function current_events_callback() {
   $q->join('field_data_field_dates', 'f', 'n.nid = f.entity_id');
   $q->condition('f.entity_type', 'node');
   $q->condition('n.type', 'event');
+  $q->condition('dgc.gid', $group_ids, 'IN');
 
   // create an OR
   $o1 = db_or();
@@ -526,21 +568,7 @@ function current_events_callback() {
   // We want distinct nodes
   $q->distinct();
 
-  $result = $q->execute();
-
-  while ($record = $result->fetchAssoc()) {
-    $node = node_load($record['nid']);
-
-    $output[] = array(
-      'start' => $node->field_dates[LANGUAGE_NONE][0]['value'],
-      'end' => $node->field_dates[LANGUAGE_NONE][0]['value2'],
-      'title' => $node->title,
-      'location' => isset($node->field_event_location[LANGUAGE_NONE][0]['value'])? $node->field_event_location[LANGUAGE_NONE][0]['value'] : '',
-      'url' => '',
-    );
-  }
-
-  return $output;
+  return $q;
 }
 
 /**
@@ -663,39 +691,6 @@ function discussion_preprocess_node(&$variables) {
     $account = user_load($variables['uid']);
     $variables['user_picture'] = theme('user_picture', array('account' => $account, 'style_name' => 'user_img_normal'));
   }
-
-  if (in_array($variables['view_mode'], array('full', 'discussion_replies')) && $variables['type'] == 'discussion') {
-
-    $user = $variables['user'];
-    $node = $variables['node'];
-
-    // Add in reply form
-    $reply_node = new stdClass();
-    $reply_node->uid = $user->uid;
-    $reply_node->name = isset($user->name) ? $user->name : '';
-    $reply_node->type = 'discussion';
-    $reply_node->language = LANGUAGE_NONE;
-    $reply_node->title = 'Reply to: ' . $node->title;
-    $reply_node->field_reply_to[LANGUAGE_NONE][0]['target_id'] = $node->nid;
-    //$reply_node->body[LANGUAGE_NONE][0]['value'] = $node->nid;
-
-    module_load_include('inc', 'node', 'node.pages');
-
-    $reply_form = drupal_get_form('discussion_node_form', $reply_node);
-    $reply_form['title']['#access'] = FALSE;
-    //$reply_form['field_reply_to']['#access'] = FALSE;
-    $reply_form['field_reply_to']['#default_value'] = $node->nid;
-    $reply_form['menu']['#access'] = FALSE;
-    $reply_form['path']['#access'] = FALSE;
-    $reply_form['additional_settings']['#access'] = FALSE;
-    $reply_form['revision_information']['#access'] = FALSE;
-
-    $reply_form['group_assignment']['#access'] = FALSE;
-    $reply_form['group_assignment']['groups']['#access'] = FALSE;
-
-    $variables['reply_form'] = $reply_form;
-
-  }
 }
 
 /**
@@ -704,7 +699,6 @@ function discussion_preprocess_node(&$variables) {
 function discussion_preprocess_comment(&$variables) {
   if ($variables['elements']['#view_mode'] == 'latest_feed') {
     $variables['theme_hook_suggestions'][] = 'comment__latest_feed';
-    $variables['created'] = strtotime($variables['created']);
   }
 }
 
@@ -716,8 +710,13 @@ function discussion_theme_registry_alter(&$theme_registry) {
   $theme_registry_copy = $theme_registry;
   _theme_process_registry($theme_registry_copy, 'phptemplate', 'theme_engine', 'discussion', DISCUSSION_PATH);
   $theme_registry += array_diff_key($theme_registry_copy, $theme_registry);
+
   // A list of templates the module will provide templates for
-  $hooks = array('node__latest_feed', 'comment__latest_feed');
+  $hooks = array(
+    'node__latest_feed',
+    'comment__latest_feed',
+  );
+
   foreach ($hooks as $h) {
     // Add the key 'theme paths' if it doesn't exist in this theme's registry
     if (!isset($theme_registry[$h]['theme paths'])) {
@@ -751,4 +750,11 @@ function _get_discussion_parent($node) {
   }
 
   return $node;
+}
+
+/**
+ * Implements hook_comment_view_alter().
+ */
+function discussion_comment_view_alter(&$build) {
+//dpm($build);
 }

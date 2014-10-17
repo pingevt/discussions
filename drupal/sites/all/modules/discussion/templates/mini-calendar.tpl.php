@@ -3,7 +3,7 @@
 
     <div class="row text-center">
       <div class="col-xs-2 clndr-prev">&lsaquo;</div>
-      <div class="col-xs-10 month"><%= month %></div>
+      <div class="col-xs-10 month"><%= month %> <%= year %></div>
       <div class="col-xs-2 clndr-next">&rsaquo;</div>
     </div>
     <div class="row text-center">

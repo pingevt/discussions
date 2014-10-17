@@ -41,24 +41,25 @@ else {
 <article id="node-<?php print $node->nid; ?>" class="<?php print $classes; ?> clearfix"<?php print $attributes; ?>>
 
   <header>
+    <button class="btn btn-default btn-xs btn-expand pull-right" data-toggle="collapse" data-target="#node-<?php print $node->nid; ?>-collapse" ><i class="glyphicon glyphicon-align-justify"></i> <span class="label">Expand Content</span></button>
     <?php print $user_picture ?>
-
     <h2><?php print $headers[$type]; ?></h2>
-    <p><?php print format_interval((time() - $created)); ?></p>
+    <p class="pull-right"><?php print format_interval((time() - $created)); ?></p>
 
   </header>
 
-  <hr />
 
-  <?php print render($title_prefix); ?>
-  <?php if (!$page && $type != 'discussion_reply'): ?>
-    <h2<?php print $title_attributes; ?>><a href="/<?php print $node_url; ?>"><?php print $title; ?></a></h2>
-  <?php elseif($type == 'discussion_reply'): ?>
-    <h2<?php print $title_attributes; ?>><a href="/<?php print $node_url; ?>"><?php print $parent->title; ?></a></h2>
-  <?php endif; ?>
-  <?php print render($title_suffix); ?>
+  <div class="content panel-collapse collapse"<?php print $content_attributes; ?> id="node-<?php print $node->nid; ?>-collapse">
+    <hr />
 
-  <div class="content"<?php print $content_attributes; ?>>
+    <?php print render($title_prefix); ?>
+    <?php if (!$page && $type != 'discussion_reply'): ?>
+      <h2<?php print $title_attributes; ?>><a href="/<?php print $node_url; ?>"><?php print $title; ?></a></h2>
+    <?php elseif($type == 'discussion_reply'): ?>
+      <h2<?php print $title_attributes; ?>><a href="/<?php print $node_url; ?>"><?php print $parent->title; ?></a></h2>
+    <?php endif; ?>
+    <?php print render($title_suffix); ?>
+
     <?php
       // We hide the comments and links now so that we can render them later.
       hide($content['comments']);

@@ -1,7 +1,7 @@
 <?php
 /**
  * @file
- * discussion.features.filter.inc
+ * discussion.filter.inc
  */
 
 /**

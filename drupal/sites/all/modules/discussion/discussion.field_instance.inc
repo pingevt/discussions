@@ -1,7 +1,7 @@
 <?php
 /**
  * @file
- * discussion.features.field_instance.inc
+ * discussion.field_instance.inc
  */
 
 /**

@@ -391,8 +391,10 @@ function group_add_user_by_email_form_submit($form, &$form_state) {
         $gm->gid = $group->gid;
         $gm->grid = 0;
         $gm->uid = $user->uid;
-
         $gm->save();
+
+        // Trigger rules event.
+        rules_invoke_event("user_added_to_discussion_group", $group, $user);
 
         drupal_set_message(t('User added'));
       }
@@ -406,6 +408,8 @@ function group_add_user_by_email_form_submit($form, &$form_state) {
 
     $password = user_password(8);
 
+    $group_member_role = user_role_load_by_name('Group Member');
+
     $fields = array(
       'name' => $form_state['values']['username'],
       'mail' => $form_state['values']['email'],
@@ -414,8 +418,6 @@ function group_add_user_by_email_form_submit($form, &$form_state) {
       'init' => 'email address',
       'roles' => array(
         DRUPAL_AUTHENTICATED_RID => 'authenticated user',
-        // TODO: change this so it is not hard coded
-        4 => 'Group Member',
       ),
     );
 
@@ -428,7 +430,7 @@ function group_add_user_by_email_form_submit($form, &$form_state) {
     $account->password = $fields['pass'];
 
     // Send the e-mail through the user module.
-    drupal_mail('user', 'register_no_approval_required', $form_state['values']['email'], NULL, array('account' => $account), variable_get('site_mail', '<a href="mailto:noreply@example..com">noreply@example..com</a>'));
+    drupal_mail('user', 'register_admin_created', $form_state['values']['email'], NULL, array('account' => $account), variable_get('site_mail', '<a href="mailto:noreply@example..com">noreply@example..com</a>'));
     drupal_set_message(t('User created. Email was sent to user with further instructions.'));
 
     // Add to group
@@ -438,10 +440,13 @@ function group_add_user_by_email_form_submit($form, &$form_state) {
     $gm->uid = $account->uid;
 
     $gm->save();
+
+    // Trigger rules event.
+    rules_invoke_event("user_added_to_discussion_group", $group, $account);
   }
 }
 
 function group_admin_page() {
   // TODO: add this page
-  print 'hi';
+  //print 'hi';
 }

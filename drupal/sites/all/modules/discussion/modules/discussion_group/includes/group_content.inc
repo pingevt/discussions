@@ -78,6 +78,51 @@ class GroupContent extends Entity {
     return entity_load_single('group', $this->gid);
   }
 
+  static function setGroupContent($entity_type, $entity, $group_ids) {
+
+    list($id, $vid, $bundle) = entity_extract_ids($entity_type, $entity);
+    if ($bundle == NULL) $bundle = $entity_type;
+    $original_group_ids = $group_ids;
+
+    // Check for existing, update or add new.
+    $query = new EntityFieldQuery();
+    $query->entityCondition('entity_type', 'group_content');
+    $query->propertyCondition('entity_type', $entity_type);
+    $query->propertyCondition('eid', $id);
+
+    $results = $query->execute();
+
+    if (isset($results['group_content'])) {
+      $group_contents = entity_load('group_content', array_keys($results['group_content']));
+
+      foreach ($group_contents as $group) {
+        if (in_array($group->gid, $group_ids)) {
+          // remove so we don't add later.
+          unset($group_ids[array_search($group->gid, $group_ids)]);
+
+          // update only with node type and save
+          $group->entity_bundle = $bundle;
+          $group->save();
+        }
+        else {
+          // If it is not in the array we need to delete it.
+          $group->delete();
+        }
+      }
+    }
+
+    foreach ($group_ids as $group_id) {
+      $gc = entity_create('group_content', array());
+
+      $gc->eid = $id;
+      $gc->gid = $group_id;
+      $gc->entity_type = $entity_type;
+      $gc->entity_bundle = $bundle;
+
+      $gc->save();
+    }
+  }
+
 }
 
 class GroupContentController extends EntityAPIController {
