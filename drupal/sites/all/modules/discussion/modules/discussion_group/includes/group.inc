@@ -32,7 +32,7 @@ class Group extends Entity {
   }
 
   /**
-   *  provides a statis function to get groups for a currently logged in user.
+   *  Provides a statis function to get groups for a currently logged in user.
    */
   public static function getCurrentUserGroups() {
     global $user;
@@ -59,7 +59,7 @@ class Group extends Entity {
   }
 
   /**
-   *  provides members of a group.
+   *  Provides members of a group.
    */
   public function getGroupMembers($refresh = FALSE) {
     static $group_memberships = array();
