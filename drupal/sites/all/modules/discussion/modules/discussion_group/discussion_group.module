@@ -472,6 +472,13 @@ function discussion_group_node_form_submit(&$form, &$form_state) {
   node_form_submit($form, $form_state);
 
   $node = node_load($form_state['values']['nid']);
+
+  // TODO: fix this. We need to hide it on the form, but it needs to be published
+  // Hide maybe with css only?
+  $node->status = 1;
+
+  node_save($node);
+
   $group_ids = $form_state['values']['group_assignment']['groups'];
 
   GroupContent::setGroupContent('node', $node, $group_ids);

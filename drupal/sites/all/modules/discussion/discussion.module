@@ -348,7 +348,15 @@ function _sort_entities_by_created($a, $b) {
   return ($a->created < $b->created) ? 1 : -1;
 }
 
-function _pull_latest_content($group = NULL, $offset = 0, $limit = 10, $content_type = '') {
+function _sort_search_results($a, $b) {
+  if ($a->filtered_date == $b->filtered_date) {
+    return 0;
+  }
+  return ($a->filtered_date < $b->filtered_date) ? 1 : -1;
+}
+
+function _pull_latest_content($group = NULL, $offset = 0, $limit = 10, $content_type = '', $status = 1) {
+
   $items = array();
   $groups = array();
 
@@ -360,75 +368,90 @@ function _pull_latest_content($group = NULL, $offset = 0, $limit = 10, $content_
   }
 
   if (!empty($groups)) {
-    $q = db_select('discussion_group_content', 'dgc');
 
-    $q->fields('dgc')
-    ->condition('gid', array_keys($groups), 'IN');
+    // First we need to grab entity types.
+    $et = db_select('discussion_group_content', 'dgc');
+    $et->fields('dgc', array('entity_type'));
+    $et->groupBy('entity_type');
+    $results = $et->execute();
 
-    if ($content_type != '' && is_string($content_type)) {
-      $q->condition('entity_bundle', $content_type);
+    $extra_entity_types = array();
+    while ($row = $results->fetchAssoc()) {
+      // We start and will always have nodes. Need to find others.
+      if ($row['entity_type'] != 'node') {
+        $extra_entity_types[] = $row['entity_type'];
+      }
     }
 
+    // Build query for nodes.
+    $node_query = db_select('discussion_group_content', 'dgc');
+    $node_query->fields('dgc');
+    $node_query->addField('n', 'status', 's');
+    $node_query->addField('n', 'created', 'filtered_date');
+    $node_query->join('node', 'n', 'n.nid = dgc.eid');
+    $node_query->condition('gid', array_keys($groups), 'IN');
+    $node_query->condition('dgc.entity_type', 'node');
+    $node_query->condition('n.status', $status);
+    $node_query->groupBy('dgc.eid');
+
+    foreach ($extra_entity_types as $et) {
+      switch ($et) {
+      default:
+        $entity_info = entity_get_info($et);
+
+        // TODO: add this in for generic entities.
+        break;
+      case 'comment':
+
+        $et_query = db_select('discussion_group_content', 'dgc');
+        $et_query->fields('dgc');
+        $et_query->addField('c', 'status', 's');
+        $et_query->addField('c', 'created', 'filtered_date');
+        $et_query->join('comment', 'c', 'c.cid = dgc.eid');
+        // We need to check that its corresponding node has same status
+        $et_query->join('node', 'n', 'n.nid = c.nid');
+        $et_query->condition('gid', array_keys($groups), 'IN');
+        $et_query->condition('dgc.entity_type', 'comment');
+        $et_query->condition('c.status', $status);
+        // We need to check that its corresponding node has same status
+        $et_query->condition('n.status', $status);
+        $et_query->groupBy('dgc.eid');
+
+        break;
+      }
+
+      // Union it.
+      $node_query->union($et_query);
+    }
+
+    // Compile them all together...
+    $query = Database::getConnection()
+    ->select($node_query, 'entities');
+    $query->fields('entities');
+
+    // Figure out offset and Limits
     if ($offset == NULL && $limit == NULL) {
-      $cq = $q->countQuery();
+      $cq = $query->countQuery();
       $r = $cq->execute()->fetchAssoc();
       return $r['expression'];
     }
     else {
-      $q->range($offset, $limit);
+      $query->range($offset, $limit);
     }
 
-    $result = $q->execute();
+    $query->orderBy('filtered_date', 'DESC');
 
-    while ($gc = $result->fetchAssoc()) {
+    $result = $query->execute()->fetchAll();
+
+    foreach ($result as $gc) {
       // Load entities
-      if ($entity = entity_load_single($gc['entity_type'], $gc['eid']) ) {
-        // Make sure it is published
-        if ($entity->status == 1) {
-          $entity->_entity_type = $gc['entity_type'];
-          $items[] = $entity;
-        }
+      if ($entity = entity_load_single($gc->entity_type, $gc->eid) ) {
+        $entity->_entity_type = $gc->entity_type;
+        $items[] = $entity;
       }
     }
 
-/*
-    $q = db_select('discussion_group_content', 'dgc');
-    $q->join('node', 'n', 'dgc.eid = n.nid');
-    $q->addField('n', 'created', 'node_created');
-
-    $q->fields('dgc')
-    ->fields('n', array('created'))
-    ->condition('gid', array_keys($groups), 'IN');
-
-    $q->orderBy('n.created', 'DESC');
-
-    if ($content_type != '' && is_string($content_type)) {
-      $q->condition('entity_bundle', $content_type);
-    }
-
-    if ($offset == NULL && $limit == NULL) {
-      $cq = $q->countQuery();
-      $r = $cq->execute()->fetchAssoc();
-      return $r['expression'];
-    }
-    else {
-      $q->range($offset, $limit);
-    }
-
-    $result = $q->execute();
-    while ($gc = $result->fetchAssoc()) {
-      $func = $gc['entity_type'] . '_load';
-
-      if ($i = $func($gc['eid'])) {
-        $i->__nc = $gc['entity_type'];
-        $items[$i->nid] = $i;
-      }
-    }
-*/
   }
-
-  // Sort items.
-  usort($items, '_sort_entities_by_created');
 
   return $items;
 }
