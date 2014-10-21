@@ -35,11 +35,10 @@ function discussion_dashboard_page_view() {
   // Pull all comments and nodes...
   if (!empty($groups)) {
     $page = isset($_GET['page'])? $_GET['page'] : 0;
-    $page_count = 20;
+    $page_count = 10;
     $offset = $page * $page_count;
 
     $count = _pull_latest_content(NULL, NULL, NULL);
-
     $items = _pull_latest_content(NULL, $offset, $page_count);
 
     foreach ($items as $item) {
@@ -238,7 +237,7 @@ function _latest_feed_landing_page($group, $content_type = NULL) {
   );
 
   $page = isset($_GET['page'])? $_GET['page'] : 0;
-  $page_count = 20;
+  $page_count = 10;
   $offset = $page * $page_count;
 
   $count = _pull_latest_content($group, NULL, NULL, $content_type);

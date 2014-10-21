@@ -31,7 +31,7 @@ else {
 
 $headers = array(
   'discussion' => $name . ' started a new ' . l('discussion', $node_url) . '.',
-  'event' => $name . ' created a new ' . l('discussion', $node_url) . '.',
+  'event' => $name . ' created a new ' . l('event', $node_url) . '.',
   'gallery' => $name . ' created a new ' . l('gallery', $node_url) . '.',
   'image' => $name . ' uploaded a new ' . l('image', $node_url) . '.',
 );
