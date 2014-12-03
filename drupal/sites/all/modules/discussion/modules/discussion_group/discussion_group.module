@@ -431,7 +431,7 @@ function discussion_group_form_alter(&$form, &$form_state, $form_id) {
         '#weight' => -20,
         '#tree' => TRUE,
         '#collapsible' => TRUE,
-        '#collapsed' => TRUE,
+        '#collapsed' => FALSE,
       );
 
       $form['group_assignment']['groups'] = array(
