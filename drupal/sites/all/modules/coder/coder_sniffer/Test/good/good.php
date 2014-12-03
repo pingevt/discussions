@@ -534,7 +534,14 @@ function mymodule_foo_some_type_bar() {
 /**
  * Implements hook_foo_bar() for foo_bar.tpl.php.
  */
-function mymodule_foo_bar() {
+function mymodule_foo_bar_phptemplate() {
+
+}
+
+/**
+ * Implements hook_foo_bar() for foo-bar.html.twig.
+ */
+function mymodule_foo_bar_twig() {
 
 }
 
@@ -605,6 +612,16 @@ class Foo implements FooInterface {
    * Some additional documentation here.
    */
   public function test2() {}
+
+  /**
+   * Return docs are allowed to use $this.
+   *
+   * @return $this
+   *   This object for chaining method calls.
+   */
+  public function test3() {
+    return $this;
+  }
 
   /**
    * Returns the string representatuion of this object.

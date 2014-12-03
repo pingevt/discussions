@@ -7,9 +7,10 @@ configure = admin/config/content/ajax_comments
 files[] = views/ajax_comments_handler_field_ajax_add_comment.inc
 files[] = views/ajax_comments_handler_field_list_comments.inc
 
-; Information added by Drupal.org packaging script on 2014-10-15
-version = "7.x-1.0-beta2+13-dev"
+
+; Information added by Drupal.org packaging script on 2014-11-23
+version = "7.x-1.0-beta2+19-dev"
 core = "7.x"
 project = "ajax_comments"
-datestamp = "1413372531"
+datestamp = "1416773210"
 
